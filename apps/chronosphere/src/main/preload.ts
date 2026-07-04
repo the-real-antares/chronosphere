@@ -73,6 +73,10 @@ const chrono: ChronoApi = {
   },
   readFileBase64: (path) => ipcRenderer.invoke(IPC.fileReadBase64, path) as Promise<string>,
   appInfo: () => ipcRenderer.invoke(IPC.appInfo) as Promise<AppInfo>,
+  auth: {
+    beginDiscord: () =>
+      ipcRenderer.invoke(IPC.authBeginDiscord) as Promise<{ token: string; handle: string } | null>,
+  },
 };
 
 contextBridge.exposeInMainWorld('chrono', chrono);

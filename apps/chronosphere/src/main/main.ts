@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { app, BrowserWindow, shell } from 'electron';
+import updaterPkg from 'electron-updater';
 import { disposeServices, registerIpcHandlers } from './ipc-handlers.ts';
 
 // Bundled to dist/main.cjs (CommonJS) — __dirname is dist/.
@@ -44,6 +45,11 @@ function createWindow(): BrowserWindow {
 void app.whenReady().then(() => {
   registerIpcHandlers();
   createWindow();
+  // Auto-update from the GitHub Releases feed — packaged builds only. Downloads
+  // in the background and installs on the next quit.
+  if (app.isPackaged) {
+    void updaterPkg.autoUpdater.checkForUpdatesAndNotify().catch(() => undefined);
+  }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

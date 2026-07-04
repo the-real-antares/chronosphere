@@ -170,6 +170,7 @@ export const IPC = {
   gameFolderAutoDetect: 'game-folder:auto-detect',
   fileReadBase64: 'file:read-base64',
   appInfo: 'app:info',
+  authBeginDiscord: 'auth:begin-discord',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -221,4 +222,8 @@ export interface ChronoApi {
    */
   readFileBase64(path: string): Promise<string>;
   appInfo(): Promise<AppInfo>;
+  auth: {
+    /** Open Discord OAuth in the browser; capture the returned token via a loopback server. */
+    beginDiscord(): Promise<{ token: string; handle: string } | null>;
+  };
 }

@@ -1,5 +1,6 @@
+import http from 'node:http';
 import path from 'node:path';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import {
   IPC,
   type AppInfo,
@@ -177,4 +178,62 @@ export function registerIpcHandlers(): void {
       electronVersion: process.versions.electron ?? 'unknown',
     };
   });
+
+  // --- Discord sign-in (loopback token handshake) -----------------------------
+  // Open the browser to the web OAuth with a one-shot local port; the web
+  // callback redirects the Bearer token back to 127.0.0.1:<port>, which we
+  // capture and store. Browsers can't reach this port from the internet.
+
+  ipcMain.handle(
+    IPC.authBeginDiscord,
+    async (): Promise<{ token: string; handle: string } | null> => {
+      const settings = await readSettings(settingsFile);
+      const apiBase = settings.apiBase.replace(/\/+$/, '');
+      return await new Promise((resolve) => {
+        let settled = false;
+        let server: http.Server;
+        let timer: ReturnType<typeof setTimeout>;
+        const finish = (result: { token: string; handle: string } | null): void => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          server.close();
+          resolve(result);
+        };
+        server = http.createServer((req, res) => {
+          const u = new URL(req.url ?? '/', 'http://127.0.0.1');
+          if (u.pathname !== '/') {
+            res.writeHead(404);
+            res.end();
+            return;
+          }
+          const token = u.searchParams.get('token') ?? '';
+          const handle = u.searchParams.get('handle') ?? '';
+          const ok = /^[0-9a-f]{64}$/.test(token);
+          res.writeHead(ok ? 200 : 400, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(
+            `<!doctype html><meta charset="utf-8"><title>Chronosphere</title><body style="font-family:system-ui;background:#070504;color:#f2eae2;display:grid;place-items:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:20px;font-weight:800;color:${ok ? '#f0b64f' : '#ff8a6a'}">${ok ? 'Signed in ✓' : 'Sign-in failed'}</div><div style="margin-top:8px;color:#b9a79a">You can close this tab and return to Chronosphere.</div></div>`,
+          );
+          if (ok) {
+            void writeSettings(settingsFile, mergeSettings(settings, { authToken: token })).then(() =>
+              finish({ token, handle }),
+            );
+          } else {
+            finish(null);
+          }
+        });
+        server.on('error', () => finish(null));
+        timer = setTimeout(() => finish(null), 5 * 60 * 1000);
+        server.listen(0, '127.0.0.1', () => {
+          const addr = server.address();
+          const port = typeof addr === 'object' && addr ? addr.port : 0;
+          if (!port) {
+            finish(null);
+            return;
+          }
+          void shell.openExternal(`${apiBase}/api/auth/discord?app=${port}`);
+        });
+      });
+    },
+  );
 }
