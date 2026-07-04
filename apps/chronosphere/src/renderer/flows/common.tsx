@@ -168,9 +168,11 @@ export function SignInControls(props: {
       return;
     }
     if (mode === 'discord') {
-      openExternal(api.discordAuthUrl());
       setWaiting(true);
       props.onExternalOpened?.();
+      const ok = await actions.signInWithDiscord();
+      setWaiting(false);
+      if (!ok) setNote('Sign-in didn’t complete — try again.');
       return;
     }
     setNote('Couldn’t reach the server — try again, or sign in later from Settings.');

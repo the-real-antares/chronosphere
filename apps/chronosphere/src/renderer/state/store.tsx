@@ -961,6 +961,22 @@ function createActions(deps: Deps) {
     return true;
   }
 
+  async function signInWithDiscord(): Promise<boolean> {
+    // The browser flow returns the token to a loopback server, which the main
+    // process stores into settings; reflect it the same way devSignIn does.
+    const result = await window.chrono.auth.beginDiscord();
+    if (!result?.token) return false;
+    const next = await window.chrono.settings.get();
+    dispatch({ type: 'settings/loaded', settings: next });
+    dispatch({ type: 'session/set', signedIn: true, handle: result.handle, checking: false });
+    pushToast({
+      kind: 'ok',
+      title: 'Signed in with Discord.',
+      sub: `@${result.handle} — review, tag, and contribute unlocked.`,
+    });
+    return true;
+  }
+
   async function signOut(): Promise<void> {
     await api.signout();
     await window.chrono.settings.setAuthToken(null);
@@ -1731,6 +1747,7 @@ function createActions(deps: Deps) {
     checkSession,
     checkAuthMode,
     devSignIn,
+    signInWithDiscord,
     signOut,
     // archive
     loadArchive,
