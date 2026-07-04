@@ -1,0 +1,2706 @@
+/* ===========================================================================
+   Chronosphere — app stylesheet, on the Supergiant design system.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. @font-face — Archivo variable, bundled woff2 (see styles.md §1/§2).
+   Two sets sharing family name 'Archivo': variable-width (stretch 62%–125%,
+   powers font-stretch:110/120/125%) and normal-width (100%), each in three
+   unicode-range subsets. */
+
+/* vietnamese — variable width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-expanded-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext — variable width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-expanded-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin — variable width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-expanded-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese — normal width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-normal-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext — normal width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-normal-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin — normal width */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Design tokens (styles.md §6 palette; DESIGN.md system). */
+
+:root {
+  /* ground */
+  --void: #070504;
+  --chrome: #0a0605;
+  --well: #0b0705;
+  --surface-2: #0f0906;
+  --surface: #100907;
+  --raised: #1a100b;
+  --row-hover: #120b07;
+  --chrome-hover: #140c08;
+  --row-divider: #140c08;
+  --hairline: #1c120c;
+  --line: #2a1b14;
+  --line-strong: #3d2a1e;
+  /* text */
+  --text-hi: #f2eae2;
+  --text-mid: #b9a79a;
+  --text-low: #7e7166;
+  --text-faint: #5c5148;
+  --text-quote: #8f8175;
+  /* accents */
+  --accent: #ff4f26;
+  --accent-pressed: #d93d1a;
+  --on-accent: #120705;
+  --accent-light: #ff7a52;
+  --gold: #f0b64f;
+  --green: #8fb86a;
+  --error: #c23a22;
+  --error-text: #d97b60;
+  --discord: #5865f2;
+  /* type */
+  --font-stack: 'Archivo', -apple-system, system-ui, sans-serif;
+  --mono-stack: ui-monospace, Menlo, monospace;
+  /* layout */
+  --topbar-h: 50px;
+  --statusbar-h: 56px;
+  --dock-compact-h: 180px;
+  --dock-collapsed-h: 34px;
+  --narrow-bp: 1120px;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Reset + chrome (styles.md §3 verbatim, adapted to classes). */
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--void);
+}
+body {
+  font-family: var(--font-stack);
+  color: var(--text-hi);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+#root {
+  height: 100%;
+}
+::selection {
+  background: rgba(255, 79, 38, 0.3);
+  color: #fff;
+}
+*::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--chrome);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 3px solid var(--chrome);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--line-strong);
+}
+input::placeholder {
+  color: var(--text-faint);
+}
+select {
+  cursor: pointer;
+}
+button {
+  font-family: inherit;
+}
+
+/* Keyboard focus ring — distinct from hover and selection. */
+:focus-visible {
+  outline: 1px solid rgba(255, 79, 38, 0.8);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Keyframes (styles.md §3 verbatim). --dx/--dy are set inline on the
+   chronoshift ghost (pixel deltas source row → disk header). */
+
+@keyframes cs-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+@keyframes cs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cs-toast {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+@keyframes cs-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 66px)) scale(0.62) rotate(9deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.24) rotate(0deg);
+  }
+}
+@keyframes cs-arrive {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(255, 79, 38, 0);
+  }
+  30% {
+    box-shadow: inset 0 2px 0 0 #ff4f26;
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(255, 79, 38, 0);
+  }
+}
+@keyframes cs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   5. App frame. Layer stack: top bar 5 · status bar 4 · expanded detail 6 ·
+   chronoshift chip 9 · toasts 10 · activity scrim 11 / drawer 12 ·
+   chronoshift ghost 20 · modals 30 · onboarding 40. */
+
+.app-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--void);
+  overflow: hidden;
+  position: relative;
+}
+/* Everything below the status bar — the expanded detail overlay covers this. */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+.app-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+/* ---------------------------------------------------------------------------
+   6. Typography utilities. */
+
+.micro {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.micro-dim {
+  color: var(--text-low);
+}
+.micro-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.mono {
+  font-family: var(--mono-stack);
+}
+.display-title {
+  font-size: 52px;
+  font-weight: 900;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 0.98;
+}
+.h-screen {
+  font-size: 30px;
+  font-weight: 900;
+  font-stretch: 120%;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+   7. Buttons (styles.md §5 actBtn). */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 9px 14px;
+  border-radius: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.btn:disabled {
+  cursor: default;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-pressed);
+  border-color: var(--accent-pressed);
+}
+.btn-primary:disabled {
+  background: var(--line);
+  color: var(--text-low);
+  border-color: var(--line);
+  opacity: 0.7;
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text-hi);
+  border: 1px solid var(--line-strong);
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--text-mid);
+  background: var(--chrome-hover);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text-hi);
+  background: var(--chrome-hover);
+}
+.btn-sm {
+  font-size: 11px;
+  padding: 7px 11px;
+}
+.btn-discord {
+  background: var(--discord);
+  border: 1px solid var(--discord);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 2px;
+}
+.btn-discord:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+/* Big onboarding CTA (13px/800/.06em uppercase, padding 13px 30px). */
+.btn-cta {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 13px 30px;
+}
+/* Generic bordered chrome buttons (Tidy / Rescan / Activity / dock buttons). */
+.chrome-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-mid);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.chrome-btn:hover {
+  background: var(--chrome-hover);
+  border-color: var(--line-strong);
+}
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-mid);
+  font-size: 14px;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--chrome-hover);
+  border-color: var(--line-strong);
+}
+.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link:hover {
+  color: var(--text-hi);
+}
+.link-dim {
+  color: var(--text-mid);
+}
+
+/* ---------------------------------------------------------------------------
+   8. Inputs & selects. */
+
+.input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-hi);
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 7px 10px;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255, 79, 38, 0.3);
+}
+.search-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.search-wrap .input {
+  padding-left: 28px;
+}
+.search-glyph {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-low);
+  font-size: 13px;
+  pointer-events: none;
+}
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 6px 24px 6px 9px;
+  color: var(--text-mid);
+  font-family: inherit;
+  font-size: 11.5px;
+  outline: none;
+}
+.select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255, 79, 38, 0.3);
+}
+.select-wide {
+  color: var(--text-hi);
+  font-weight: 600;
+}
+.select-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-low);
+  font-size: 10px;
+  pointer-events: none;
+}
+textarea.input {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* Toggle pill (34×19; knob 15×15). */
+.toggle {
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--line);
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.toggle.on {
+  background: var(--accent);
+  justify-content: flex-end;
+}
+.toggle-knob {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--text-low);
+}
+.toggle.on .toggle-knob {
+  background: var(--on-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   9. Chips (styles.md §5). Base + status variants. Membership badge and
+   health chip are SEPARATE elements — never merged (two-axis rule). */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+/* Membership badges. */
+.chip-mem-known {
+  color: var(--green);
+  background: rgba(143, 184, 106, 0.1);
+  border: 1px solid rgba(143, 184, 106, 0.35);
+}
+.chip-mem-update {
+  color: var(--gold);
+  background: rgba(240, 182, 79, 0.12);
+  border: 1px solid rgba(240, 182, 79, 0.42);
+}
+.chip-mem-unknown {
+  color: var(--accent-light);
+  background: rgba(255, 79, 38, 0.12);
+  border: 1px solid rgba(255, 79, 38, 0.42);
+}
+
+/* Health chips (outline; broken gets a fill — ⚠ is reserved for broken). */
+.chip-health-verified {
+  color: var(--green);
+  border: 1px solid rgba(143, 184, 106, 0.3);
+  background: transparent;
+}
+.chip-health-heavy {
+  color: var(--gold);
+  border: 1px solid rgba(240, 182, 79, 0.34);
+  background: transparent;
+}
+.chip-health-broken {
+  color: var(--error-text);
+  border: 1px solid rgba(194, 58, 34, 0.5);
+  background: rgba(194, 58, 34, 0.08);
+}
+.chip-health-needs-mod {
+  color: var(--text-mid);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+}
+
+/* Facet chips. */
+.chip-facet {
+  font-size: 11px;
+  color: var(--text-mid);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 3px 8px;
+  gap: 4px;
+}
+/* Team-layout suggestion — the one dashed chip ("likely 2v2 ⓘ"). */
+.chip-team {
+  color: var(--gold);
+  background: rgba(240, 182, 79, 0.08);
+  border: 1px dashed rgba(240, 182, 79, 0.35);
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+.chip-mod {
+  color: var(--text-mid);
+  border: 1px solid var(--line-strong);
+  padding: 3px 8px;
+}
+
+/* Archive install-state chips. */
+.chip-have {
+  color: var(--text-low);
+  border: 1px solid var(--line);
+  background: transparent;
+  font-weight: 700;
+}
+.chip-newer {
+  color: var(--gold);
+  border: 1px solid rgba(240, 182, 79, 0.4);
+  background: rgba(240, 182, 79, 0.1);
+  font-weight: 700;
+}
+
+/* Disk row flag chips ("3 versions" gold / "⧉ ×4" neutral / "→ v3" gold / "in review" neutral). */
+.chip-flag-gold {
+  color: var(--gold);
+  border: 1px solid rgba(240, 182, 79, 0.35);
+  background: rgba(240, 182, 79, 0.08);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+}
+.chip-flag-neutral {
+  color: var(--text-mid);
+  border: 1px solid var(--line);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+}
+
+/* Version tags (Versions tab). */
+.tag-installed {
+  color: var(--green);
+  border: 1px solid rgba(143, 184, 106, 0.35);
+}
+.tag-canonical {
+  color: var(--green);
+  border: 1px solid rgba(143, 184, 106, 0.45);
+  background: rgba(143, 184, 106, 0.08);
+}
+.tag-latest {
+  color: var(--gold);
+  border: 1px solid rgba(240, 182, 79, 0.4);
+}
+.tag-superseded {
+  color: var(--text-low);
+  border: 1px solid var(--line);
+}
+
+/* Folder tag chip (multi-install; only when not the default folder). */
+.chip-folder {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  padding: 1px 5px;
+}
+
+/* "Chronosphere-verified" (health tab) / contributor badges (reviews). */
+.chip-verified-badge {
+  color: var(--green);
+  border: 1px solid rgba(143, 184, 106, 0.4);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chip-contrib-badge {
+  color: var(--gold);
+  border: 1px solid rgba(240, 182, 79, 0.35);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+}
+
+/* Membership / health glyph colors (glyph-first status column). */
+.glyph-mem-known {
+  color: var(--green);
+}
+.glyph-mem-update {
+  color: var(--gold);
+}
+.glyph-mem-unknown {
+  color: var(--accent-light);
+}
+.glyph-health-verified {
+  color: var(--green);
+}
+.glyph-health-heavy {
+  color: var(--gold);
+}
+.glyph-health-broken {
+  color: var(--error-text);
+}
+.glyph-health-needs-mod {
+  color: var(--text-mid);
+}
+.verified-star {
+  color: var(--gold);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   10. Top bar (screens.md §2.1). */
+
+.titlebar {
+  height: var(--topbar-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--line);
+  padding: 0 14px 0 16px;
+  position: relative;
+  z-index: 5;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+.brand-pip {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(255, 79, 38, 0.6);
+  align-self: center;
+}
+.brand-name {
+  font-size: 16px;
+  font-weight: 900;
+  font-stretch: 125%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-hi);
+}
+.brand-eyebrow {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.titlebar-spacer {
+  flex: 1;
+}
+.folder-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f0906;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text-hi);
+}
+.folder-btn:hover {
+  background: var(--chrome-hover);
+  border-color: var(--line-strong);
+}
+.folder-btn-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.folder-btn-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-hi);
+}
+.folder-btn-chevron {
+  font-size: 10px;
+  color: var(--text-low);
+}
+.conn-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 6px 9px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.conn-btn:hover {
+  background: var(--chrome-hover);
+}
+.conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  animation: cs-pulse 2.2s ease-in-out infinite;
+}
+.conn-btn.online {
+  color: var(--green);
+}
+.conn-btn.online .conn-dot {
+  background: var(--green);
+}
+.conn-btn.offline {
+  color: var(--error-text);
+}
+.conn-btn.offline .conn-dot {
+  background: var(--error-text);
+}
+.sync-spinner {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-low);
+  font-size: 13px;
+}
+.sync-spinner .spin {
+  animation: cs-spin 1s linear infinite;
+}
+.spin {
+  display: inline-block;
+  animation: cs-spin 1s linear infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   11. Status bar (screens.md §2.2) — the right-pane filter. */
+
+.statusbar {
+  height: var(--statusbar-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 0 16px;
+  position: relative;
+  z-index: 4;
+}
+.statusbar-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.statusbar-seg:hover {
+  background: rgba(255, 79, 38, 0.05);
+}
+.statusbar-seg.active {
+  background: rgba(255, 79, 38, 0.07);
+  border-bottom-color: var(--accent);
+}
+.seg-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.seg-count {
+  font-size: 21px;
+  font-weight: 900;
+  font-stretch: 110%;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-hi);
+  line-height: 1;
+}
+.statusbar-seg.seg-all {
+  min-width: 96px;
+}
+.seg-all .seg-label {
+  color: var(--text-low);
+}
+.seg-known .seg-label {
+  color: var(--green);
+}
+.seg-unknown .seg-label {
+  color: var(--accent-light);
+}
+.seg-update .seg-label {
+  color: var(--gold);
+}
+.seg-update .seg-count {
+  color: var(--gold);
+}
+.seg-broken .seg-label {
+  color: var(--error-text);
+}
+.seg-broken .seg-count {
+  color: var(--error-text);
+}
+.seg-dup .seg-label {
+  color: var(--text-mid);
+}
+.seg-dup .seg-count {
+  color: var(--text-mid);
+}
+.statusbar-spacer {
+  flex: 1;
+}
+.statusbar-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Narrow-mode pane switch (screens.md §2.3). */
+.pane-tabs {
+  display: flex;
+  background: var(--chrome);
+  flex: 0 0 auto;
+}
+.seg-tab {
+  flex: 1;
+  padding: 11px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--hairline);
+  color: var(--text-low);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.seg-tab.active {
+  background: var(--well);
+  border-bottom-color: var(--accent);
+  color: var(--text-hi);
+}
+
+/* ---------------------------------------------------------------------------
+   12. Panes (screens.md §3/§4). */
+
+.pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--well);
+}
+.pane-archive {
+  border-right: 1px solid var(--line);
+}
+/* Drag-to-install drop target (reconciliation #3). */
+.pane-disk.drop-target {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 40px rgba(255, 79, 38, 0.12);
+}
+.pane-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.pane-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.pane-count {
+  font-size: 20px;
+  font-weight: 900;
+  font-stretch: 125%;
+  line-height: 1;
+  color: var(--text-hi);
+}
+.pane-unit {
+  font-size: 11px;
+  color: var(--text-low);
+}
+.pane-header-spacer {
+  flex: 1;
+}
+.pane-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+
+/* Filter strip. */
+.filter-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-2);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-row-spacer {
+  flex: 1;
+}
+.sort-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Scroll region + footer. */
+.list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.list-footer {
+  text-align: center;
+  padding: 14px 16px;
+  font-size: 11.5px;
+  color: var(--text-low);
+}
+
+/* Pane state screens (connection lost / empty). */
+.pane-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+.pane-state-glyph {
+  font-size: 30px;
+  color: var(--error-text);
+}
+.pane-state-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-hi);
+}
+.pane-state-body {
+  font-size: 12.5px;
+  color: var(--text-mid);
+  max-width: 320px;
+  line-height: 1.55;
+}
+
+/* Skeleton rows (loading lists — DESIGN.md §12). */
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--row-divider);
+}
+.skeleton-block {
+  background: var(--surface);
+  border-radius: 2px;
+  animation: cs-pulse 2.2s ease-in-out infinite;
+}
+.skeleton-thumb {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+}
+.skeleton-line {
+  height: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+   13. List rows. Three separable treatments: hover ≠ selected ≠ "✓ have". */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--row-divider);
+  cursor: pointer;
+  position: relative;
+  transition: background 150ms ease;
+}
+.row:hover {
+  background: var(--row-hover);
+  box-shadow: inset 0 -1px 0 var(--hairline);
+}
+.row.selected {
+  background: rgba(255, 79, 38, 0.06);
+}
+.row.selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+.row-arrive {
+  animation: cs-arrive 900ms ease;
+}
+.row-thumb {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background-color: var(--well);
+  overflow: hidden;
+}
+.row-thumb-sm {
+  width: 30px;
+  height: 30px;
+}
+/* Placeholder tile — crossed hatch, never a broken image (spec §4.3). */
+.thumb-placeholder {
+  background-color: var(--well);
+  background-image: repeating-linear-gradient(
+      63deg,
+      rgba(255, 255, 255, 0.028) 0 1px,
+      transparent 1px 15px
+    ),
+    repeating-linear-gradient(-63deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 15px);
+}
+.row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.row-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-meta {
+  font-size: 11px;
+  color: var(--text-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.row-rating {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.row-stars {
+  font-size: 11px;
+  color: var(--gold);
+}
+.row-stars .rating-value {
+  color: var(--text-mid);
+}
+.row-dl {
+  font-size: 10.5px;
+  color: var(--text-low);
+}
+/* Two-glyph status column (disk rows): membership + health, glyph-first. */
+.glyph-col {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.glyph-col .mem-glyph {
+  width: 13px;
+  text-align: center;
+  font-size: 12px;
+}
+.glyph-col .health-glyph {
+  width: 13px;
+  text-align: center;
+  font-size: 11px;
+}
+/* Multi-select checkbox (18×18). */
+.row-check {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+.row-check.checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+/* Row ⟳ chronoshift button (30×30; gold-tinted for updates). */
+.chrono-btn {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 79, 38, 0.1);
+  border: 1px solid rgba(255, 79, 38, 0.4);
+  border-radius: 2px;
+  color: var(--accent);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.chrono-btn:hover {
+  background: rgba(255, 79, 38, 0.22);
+}
+.chrono-btn.newer {
+  background: rgba(240, 182, 79, 0.1);
+  border-color: rgba(240, 182, 79, 0.4);
+  color: var(--gold);
+}
+.chrono-btn.newer:hover {
+  background: rgba(240, 182, 79, 0.22);
+}
+/* Group disclosure caret (26×24). */
+.group-caret {
+  width: 26px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-mid);
+  font-size: 11px;
+  cursor: pointer;
+}
+.group-caret.open {
+  background: var(--raised);
+}
+/* Review nudge — gold "review?" with pip (reconciliation #7). */
+.nudge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.nudge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--gold);
+}
+/* Sub-rows (indented disclosure rows). */
+.sub-row {
+  padding-left: 40px;
+  background: var(--chrome);
+}
+.sub-row .row-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+.sub-row .row-name.mono {
+  font-family: var(--mono-stack);
+}
+
+/* ---------------------------------------------------------------------------
+   14. Scan strip + new-maps banner (screens.md §4.3/§4.4). */
+
+.scan-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.scan-strip-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.scan-track {
+  flex: 1;
+  height: 3px;
+  background: var(--raised);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.scan-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 999px;
+  transition: width 0.12s linear;
+}
+.scan-pct {
+  font-size: 11px;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+.new-maps-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(240, 182, 79, 0.07);
+  border-bottom: 1px solid rgba(240, 182, 79, 0.2);
+  padding: 8px 16px;
+  flex: 0 0 auto;
+}
+.new-maps-banner-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.new-maps-banner .banner-spacer {
+  flex: 1;
+}
+.banner-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-low);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.banner-dismiss:hover {
+  color: var(--text-hi);
+}
+
+/* ---------------------------------------------------------------------------
+   15. Detail panel — tiers (screens.md §5). Collapsed tier shows name +
+   PRIMARY ACTION + expand affordances (reconciliation #2). */
+
+.detail-dock {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  height: var(--dock-compact-h);
+  transition: height 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-dock.collapsed {
+  height: var(--dock-collapsed-h);
+}
+.detail-handle {
+  height: 34px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--hairline);
+  padding: 0 12px 0 16px;
+}
+.detail-handle-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.detail-handle-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.detail-handle-spacer {
+  flex: 1;
+}
+.dock-icon-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-mid);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.dock-icon-btn:hover {
+  background: var(--chrome-hover);
+  border-color: var(--line-strong);
+}
+.detail-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+}
+.detail-empty {
+  font-size: 12.5px;
+  color: var(--text-low);
+  align-self: center;
+}
+.detail-thumb {
+  width: 96px;
+  height: 96px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background-color: var(--well);
+  overflow: hidden;
+}
+.detail-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.detail-name {
+  font-size: 16px;
+  font-weight: 900;
+  font-stretch: 110%;
+  color: var(--text-hi);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.author-chip {
+  font-size: 11px;
+  color: var(--text-low);
+}
+.author-chip.gold {
+  color: var(--gold);
+  font-weight: 700;
+}
+.author-chip.unknown {
+  font-style: italic;
+}
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.detail-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-mid);
+}
+.detail-quote {
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--text-quote);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-actions {
+  min-width: 150px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+/* Batch state. */
+.detail-batch-count {
+  font-size: 22px;
+  font-weight: 900;
+  font-stretch: 125%;
+  color: var(--accent-light);
+  line-height: 1;
+}
+.detail-batch-sub {
+  font-size: 11.5px;
+  color: var(--text-low);
+}
+.batch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 52px;
+  overflow-y: auto;
+}
+.batch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-mid);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 2px 8px;
+}
+.batch-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+.batch-chip.from-archive::before {
+  background: var(--accent-light);
+}
+.batch-chip.from-disk::before {
+  background: var(--green);
+}
+.detail-batch-actions {
+  min-width: 220px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* Expanded overlay (absolute over the pane area, below the status bar). */
+.detail-expanded {
+  position: absolute;
+  inset: 0;
+  background: var(--void);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  animation: cs-fade 0.18s ease;
+}
+.expanded-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.expanded-title {
+  font-size: 26px;
+  font-weight: 900;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  color: var(--text-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.expanded-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+/* Viewer (pan/zoom). */
+.viewer {
+  flex: 1.15;
+  min-width: 0;
+  background: var(--well);
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+}
+.viewer.dragging {
+  cursor: grabbing;
+}
+.viewer-canvas {
+  position: absolute;
+  inset: -20%;
+  transition: transform 140ms ease-out;
+}
+.viewer.dragging .viewer-canvas {
+  transition: none;
+}
+.viewer-caption {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-family: var(--mono-stack);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  background: rgba(10, 6, 5, 0.75);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 3px 7px;
+}
+.zoom-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  background: rgba(10, 6, 5, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.zoom-btn {
+  width: 26px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-hi);
+  font-size: 15px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.zoom-btn:hover {
+  background: var(--chrome-hover);
+}
+.zoom-pct {
+  font-size: 11px;
+  color: var(--text-hi);
+  width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.zoom-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+}
+.zoom-reset {
+  padding: 0 8px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-mid);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.zoom-reset:hover {
+  color: var(--text-hi);
+}
+/* Right content column. */
+.expanded-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+}
+.detail-tabs {
+  display: flex;
+  background: var(--chrome);
+  flex: 0 0 auto;
+}
+.detail-tab {
+  flex: 1;
+  padding: 11px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-low);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.detail-tab.active {
+  background: var(--well);
+  border-bottom-color: var(--accent);
+  color: var(--text-hi);
+}
+.tab-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  min-height: 0;
+}
+.stat-band {
+  display: flex;
+  gap: 26px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: 14px 0;
+  margin: 14px 0;
+}
+.stat-num {
+  font-size: 26px;
+  font-weight: 900;
+  font-stretch: 110%;
+  color: var(--text-hi);
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  margin-top: 3px;
+}
+.section-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 14px 0 8px;
+}
+.description-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-mid);
+}
+/* Health tab. */
+.verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+}
+.verdict-banner.verified {
+  background: rgba(143, 184, 106, 0.06);
+  border-color: rgba(143, 184, 106, 0.25);
+}
+.verdict-banner.broken {
+  background: rgba(194, 58, 34, 0.07);
+  border-color: rgba(194, 58, 34, 0.3);
+}
+.verdict-glyph {
+  font-size: 22px;
+}
+.verdict-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.verdict-stamp {
+  font-size: 11px;
+  color: var(--text-low);
+}
+.finding-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-mid);
+  background: var(--surface);
+  border-radius: 2px;
+  padding: 9px 12px;
+  margin-bottom: 5px;
+}
+.footnote {
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--text-faint);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+/* Reviews tab. */
+.summary-card {
+  background: var(--surface);
+  border-left: 2px solid var(--gold);
+  border-radius: 2px;
+  padding: 11px 13px;
+  margin-bottom: 12px;
+}
+.summary-card-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 5px;
+}
+.summary-card-text {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+.review-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.review-sort-opt {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-low);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.review-sort-opt.active {
+  color: var(--text-hi);
+  border-bottom-color: var(--accent);
+}
+.review-item {
+  border-top: 1px solid var(--hairline);
+  padding: 12px 0;
+}
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.review-handle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-hi);
+}
+.review-stars {
+  font-size: 11px;
+  color: var(--gold);
+}
+.review-when {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+.review-text {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.55;
+  margin: 6px 0;
+}
+.helpful-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text-mid);
+  font-size: 11px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.helpful-btn:hover {
+  border-color: var(--line-strong);
+  background: var(--chrome-hover);
+}
+.helpful-btn.marked {
+  color: var(--gold);
+  border-color: rgba(240, 182, 79, 0.4);
+}
+/* Star input (review compose). */
+.star-input {
+  display: flex;
+  gap: 4px;
+}
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 26px;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 2px;
+}
+.star-btn.lit {
+  color: var(--gold);
+}
+/* Versions tab. */
+.version-explainer {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+.version-explainer .latest-word {
+  color: var(--gold);
+  font-weight: 700;
+}
+.version-explainer .canonical-word {
+  color: var(--green);
+  font-weight: 700;
+}
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  margin-bottom: 6px;
+}
+.version-row.canonical {
+  border-color: rgba(143, 184, 106, 0.3);
+}
+.version-label {
+  font-size: 13px;
+  font-weight: 800;
+  width: 64px;
+  color: var(--text-hi);
+}
+.version-date {
+  font-size: 11.5px;
+  color: var(--text-low);
+}
+.version-spacer {
+  flex: 1;
+}
+
+/* Team-vote popover (reconciliation #8). */
+.popover {
+  position: absolute;
+  z-index: 25;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+/* ---------------------------------------------------------------------------
+   16. Chronoshift surfaces (screens.md §6). */
+
+.chrono-ghost {
+  position: fixed;
+  z-index: 20;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 22px rgba(255, 79, 38, 0.65);
+  pointer-events: none;
+  animation: cs-fly 560ms cubic-bezier(0.5, 0.05, 0.4, 1) forwards;
+}
+.chrono-chip {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  min-width: 280px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  padding: 10px 14px;
+}
+.chrono-chip-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.chrono-chip-glyph {
+  color: var(--accent);
+  font-size: 14px;
+  animation: cs-spin 1s linear infinite;
+}
+.chrono-chip-phase {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-hi);
+}
+.chrono-chip-pct {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-mid);
+  font-variant-numeric: tabular-nums;
+}
+.chrono-chip-track {
+  height: 3px;
+  background: var(--surface);
+  border-radius: 999px;
+  margin: 8px 0 6px;
+  overflow: hidden;
+}
+.chrono-chip-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.12s linear;
+}
+.chrono-chip-sub {
+  font-size: 11px;
+  color: var(--text-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------------------
+   17. Toasts (screens.md §7). Newest at bottom, stacked bottom-right. */
+
+.toast-layer {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+.toast {
+  display: flex;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 340px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
+  padding: 11px 12px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  animation: cs-toast 0.22s ease;
+}
+.toast.ok {
+  border-left-color: var(--green);
+}
+.toast.err {
+  border-color: rgba(194, 58, 34, 0.5);
+  border-left-color: var(--error);
+}
+.toast.flavor {
+  border-color: rgba(240, 182, 79, 0.4);
+  border-left-color: var(--gold);
+}
+.toast-glyph {
+  font-size: 13px;
+  color: var(--text-hi);
+  flex: 0 0 auto;
+}
+.toast.ok .toast-glyph {
+  color: var(--green);
+}
+.toast.err .toast-glyph {
+  color: var(--error-text);
+}
+.toast.flavor .toast-glyph {
+  color: var(--gold);
+}
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.toast-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-hi);
+}
+.toast-sub {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-top: 2px;
+}
+.toast-action {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 5px;
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.toast-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-low);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+}
+.toast-dismiss:hover {
+  color: var(--text-hi);
+}
+
+/* ---------------------------------------------------------------------------
+   18. Activity drawer (screens.md §8). */
+
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 3, 2, 0.5);
+  z-index: 11;
+  animation: cs-fade 0.18s ease;
+}
+.activity-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -16px 0 50px rgba(0, 0, 0, 0.5);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  animation: cs-fade 0.18s ease;
+}
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.activity-title {
+  font-size: 12px;
+  font-weight: 900;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-hi);
+}
+.activity-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.activity-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--row-divider);
+}
+.activity-glyph {
+  color: var(--gold);
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.activity-text {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--text-mid);
+  line-height: 1.4;
+}
+.activity-time {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   19. Modals (screens.md §9). */
+
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 3, 2, 0.68);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cs-fade 0.16s ease;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  max-height: 88vh;
+  width: min(560px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+}
+.modal-settings {
+  width: min(600px, calc(100vw - 48px));
+}
+.modal-contribute {
+  width: min(560px, calc(100vw - 48px));
+}
+.modal-tidy {
+  width: min(540px, calc(100vw - 48px));
+}
+.modal-review {
+  width: min(480px, calc(100vw - 48px));
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.modal-title {
+  font-size: 15px;
+  font-weight: 900;
+  font-stretch: 110%;
+  color: var(--text-hi);
+}
+.modal-title .gold {
+  color: var(--gold);
+}
+.modal-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-low);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.modal-close:hover {
+  color: var(--text-hi);
+}
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+  min-height: 0;
+}
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--hairline);
+  flex: 0 0 auto;
+}
+.modal-footer-note {
+  font-size: 11.5px;
+  color: var(--text-low);
+}
+.modal-footer-spacer {
+  flex: 1;
+}
+/* Settings sections. */
+.settings-section {
+  border-top: 1px solid var(--hairline);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.settings-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.settings-section-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.install-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--well);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.install-path {
+  font-family: var(--mono-stack);
+  font-size: 12.5px;
+  color: var(--text-hi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.install-sub {
+  font-size: 11px;
+  color: var(--text-low);
+  margin-top: 2px;
+}
+.chip-default-target {
+  color: var(--accent);
+  border: 1px solid rgba(255, 79, 38, 0.4);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.pip-green {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--green);
+  flex: 0 0 auto;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.setting-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.setting-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-hi);
+}
+.setting-row-sub {
+  font-size: 11.5px;
+  color: var(--text-low);
+  margin-top: 2px;
+}
+/* Consent / permission rows (onboarding + contribute). */
+.consent-row {
+  display: flex;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-mid);
+  margin-bottom: 10px;
+}
+.consent-glyph {
+  flex: 0 0 16px;
+  text-align: center;
+  font-weight: 700;
+}
+.consent-glyph.yes {
+  color: var(--green);
+}
+.consent-glyph.no {
+  color: var(--error-text);
+}
+.note-card {
+  background: var(--well);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 11px 13px;
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+.note-card .protected-word {
+  color: var(--green);
+  font-weight: 700;
+}
+/* Checkbox list items (contribute select / tidy list). */
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--row-divider);
+  cursor: pointer;
+}
+.pick-row:hover {
+  background: var(--row-hover);
+}
+.pick-thumb {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--well);
+  overflow: hidden;
+}
+.pick-thumb-sm {
+  width: 34px;
+  height: 34px;
+}
+/* Per-item upload/progress list (contribute + batch chronoshift). */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 12.5px;
+  color: var(--text-mid);
+}
+.progress-row .status-ok {
+  color: var(--green);
+}
+.progress-row .status-err {
+  color: var(--error-text);
+}
+.progress-track {
+  height: 4px;
+  background: var(--surface);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 1;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.13s linear;
+}
+.progress-fill.gold {
+  background: var(--gold);
+}
+/* Discord avatar circle (settings account card). */
+.avatar-discord {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5865f2, #8b5cf6);
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+   20. Onboarding (screens.md §1). Full-screen, z-40. */
+
+.onboarding {
+  position: fixed;
+  inset: 0;
+  background: var(--void);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+.onb-steps {
+  display: flex;
+  gap: 6px;
+  padding: 20px 40px 0;
+}
+.onb-step-bar {
+  flex: 1;
+  height: 2px;
+  background: var(--line);
+}
+.onb-step-bar.done {
+  background: var(--accent);
+}
+.onb-step-bar.active {
+  background: var(--gold);
+}
+.onb-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.onb-card {
+  max-width: 520px;
+  width: 100%;
+  padding: 40px;
+}
+.onb-card.narrow-card {
+  max-width: 480px;
+}
+.onb-card.centered {
+  text-align: center;
+}
+/* Optically center the expanded display title: letter-spacing adds trailing
+   space after the final glyph, nudging centered text slightly left. */
+.onb-card.centered .display-title {
+  text-indent: 0.02em;
+}
+/* Static starfield (welcome only — no animation, per spec). */
+.starfield {
+  background-image: radial-gradient(rgba(242, 234, 226, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(242, 234, 226, 0.04) 1px, transparent 1px),
+    radial-gradient(rgba(242, 234, 226, 0.045) 1px, transparent 1px);
+  background-size: 180px 180px, 240px 240px, 200px 200px;
+  background-position: 0 0, 60px 90px, 120px 30px;
+}
+.onb-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.onb-mark-pip {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 16px rgba(255, 79, 38, 0.7);
+}
+.onb-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.onb-eyebrow.gold {
+  letter-spacing: 0.24em;
+  color: var(--gold);
+}
+.onb-body {
+  font-size: 15px;
+  color: var(--text-mid);
+  line-height: 1.6;
+}
+.onb-body-sm {
+  font-size: 13.5px;
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+.onb-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 34px;
+}
+.detected-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid rgba(143, 184, 106, 0.3);
+  border-radius: 2px;
+  margin: 16px 0;
+  text-align: left;
+}
+.detected-path {
+  font-family: var(--mono-stack);
+  font-size: 13.5px;
+  color: var(--text-hi);
+}
+.detected-sub {
+  font-size: 11.5px;
+  color: var(--text-low);
+  margin-top: 2px;
+}
+.onb-progress-track {
+  height: 4px;
+  background: var(--surface);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 22px 0 10px;
+}
+.onb-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.13s linear;
+}
+.onb-progress-label {
+  font-size: 12.5px;
+  color: var(--text-mid);
+}
+
+/* ---------------------------------------------------------------------------
+   21. Boot error state (in-voice, minimal). */
+
+.boot-error {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--void);
+  padding: 24px;
+  text-align: center;
+}
+.boot-error-glyph {
+  font-size: 30px;
+  color: var(--error-text);
+}
+.boot-error-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-hi);
+}
+.boot-error-body {
+  font-size: 12.5px;
+  color: var(--text-mid);
+  max-width: 420px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------------------------
+   22. Narrow layout (window < 1120px — reconciliation #1: the prototype's
+   arrangement at the spec's breakpoint). The pane switch itself is
+   JS-rendered (App adds .narrow to .app-root); these rules cover the CSS side. */
+
+@media (max-width: 1119.98px) {
+  .pane-archive {
+    border-right: none;
+  }
+  .detail-actions,
+  .detail-batch-actions {
+    min-width: 130px;
+  }
+  .statusbar {
+    overflow-x: auto;
+  }
+  .statusbar-seg {
+    padding: 0 10px;
+  }
+  .statusbar-seg.seg-all {
+    min-width: 72px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   23. Reduced motion — both the OS setting and the in-app toggle (App sets
+   .reduced-motion on .app-root) disable the chronoshift transition + pulses. */
+
+@media (prefers-reduced-motion: reduce) {
+  .chrono-ghost {
+    animation: none;
+    display: none;
+  }
+  .conn-dot,
+  .skeleton-block {
+    animation: none;
+  }
+  .row-arrive {
+    animation: none;
+  }
+  .detail-dock {
+    transition: none;
+  }
+}
+.reduced-motion .chrono-ghost {
+  animation: none;
+  display: none;
+}
+.reduced-motion .conn-dot,
+.reduced-motion .skeleton-block {
+  animation: none;
+}
+.reduced-motion .row-arrive {
+  animation: none;
+}
+.reduced-motion .detail-dock {
+  transition: none;
+}

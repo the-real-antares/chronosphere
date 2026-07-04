@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": [],
+    "paths": {
+      "@antares/shared": ["../../packages/shared/src/index.ts"],
+      "@antares/shared/*": ["../../packages/shared/src/*"]
+    }
+  },
+  "include": [
+    "src/ipc.ts",
+    "src/renderer/**/*.ts",
+    "src/renderer/**/*.tsx"
+  ]
+}

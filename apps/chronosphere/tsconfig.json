@@ -1,0 +1,8 @@
+{
+  // Solution-style config for editors; typecheck runs the two leaf configs directly.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.main.json" },
+    { "path": "./tsconfig.renderer.json" }
+  ]
+}

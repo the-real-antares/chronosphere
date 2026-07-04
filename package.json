@@ -1,0 +1,26 @@
+{
+  "name": "chronosphere",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Chronosphere — desktop map manager for The Real Antares, the Yuri's Revenge map archive.",
+  "homepage": "https://the-real-antares.com",
+  "license": "GPL-3.0-or-later",
+  "workspaces": [
+    "packages/shared",
+    "apps/chronosphere"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "npm run dev -w apps/chronosphere",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dist": "npm run dist -w apps/chronosphere",
+    "dist:win": "npm run dist:win -w apps/chronosphere",
+    "dist:mac": "npm run dist:mac -w apps/chronosphere",
+    "dist:linux": "npm run dist:linux -w apps/chronosphere"
+  }
+}

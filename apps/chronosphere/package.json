@@ -1,0 +1,86 @@
+{
+  "name": "@antares/chronosphere",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chronosphere — The Real Antares map manager. Desktop companion app.",
+  "author": "The Real Antares",
+  "homepage": "https://the-real-antares.com",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.renderer.json",
+    "test": "vitest run"
+  },
+  "build": {
+    "appId": "com.therealantares.chronosphere",
+    "productName": "Chronosphere",
+    "electronVersion": "36.9.5",
+    "copyright": "© 2026 The Real Antares. Unaffiliated with EA.",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["dist/**/*"],
+    "icon": "build/icon.png",
+    "artifactName": "Chronosphere-${version}-${arch}.${ext}",
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "azureSignOptions": {
+        "endpoint": "https://eus.codesigning.azure.net/",
+        "codeSigningAccountName": "mono-labs",
+        "certificateProfileName": "mono-labs-codesign"
+      }
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Chronosphere",
+      "uninstallDisplayName": "Chronosphere",
+      "artifactName": "Chronosphere-${version}-Setup.${ext}"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
+    },
+    "dmg": {
+      "artifactName": "Chronosphere-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "synopsis": "The Real Antares — YR map manager",
+      "maintainer": "The Real Antares <maps@the-real-antares.com>",
+      "artifactName": "Chronosphere-${version}-${arch}.${ext}"
+    },
+    "publish": [{ "provider": "github", "owner": "the-real-antares", "repo": "chronosphere" }]
+  },
+  "devDependencies": {
+    "@antares/shared": "*",
+    "electron": "^36.0.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.25.0",
+    "vite": "^6.3.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "^5.8.0",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "vitest": "^3.1.0"
+  }
+}

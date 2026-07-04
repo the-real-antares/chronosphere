@@ -1,0 +1,19 @@
+{
+  "name": "@antares/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared domain: taxonomy, types, API contract, map-file parsing (INI, packs, previews), MapKit analyzer, content hashing.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^22.15.0"
+  }
+}

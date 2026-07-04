@@ -1,0 +1,66 @@
+name: release
+
+# Tag a version to build + publish Chronosphere for macOS, Linux and Windows.
+#   git tag v0.1.0 && git push origin v0.1.0
+# Modelled on the monolythium/desktop-wallet Tauri CI, adapted to electron-builder.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # create the GitHub Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest,   platform: mac }
+          - { os: ubuntu-latest,  platform: linux }
+          - { os: windows-latest, platform: win }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (monorepo)
+        run: npm ci
+
+      - name: Build Chronosphere (main + preload + renderer)
+        run: npm run build --workspace apps/chronosphere
+
+      # Notarization uses an App Store Connect API key (.p8). electron-builder
+      # reads it from APPLE_API_KEY (a path), so materialize it on the runner.
+      - name: Write App Store Connect API key (macOS)
+        if: matrix.platform == 'mac'
+        run: |
+          echo "${{ secrets.APPSTORE_CONNECT_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/asc-key.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/asc-key.p8" >> "$GITHUB_ENV"
+
+      - name: Package, sign, notarize + publish
+        working-directory: apps/chronosphere
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # ── Windows · Azure Trusted Signing (integrated; keeps updater hashes correct) ──
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+          # ── macOS · Developer ID signing (CSC_LINK accepts the base64 .p12 directly) ──
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+          # ── macOS · notarization (APPLE_API_KEY path is exported in the step above) ──
+          APPLE_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # No --mac/--win/--linux flag: electron-builder targets the host OS, so
+        # each matrix job builds its own platform and publishes into one release.
+        run: npx --no-install electron-builder --publish always
