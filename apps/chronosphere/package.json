@@ -25,6 +25,7 @@
     "electronVersion": "36.9.5",
     "copyright": "© 2026 The Real Antares. Unaffiliated with EA.",
     "directories": { "output": "release", "buildResources": "build" },
+    "npmRebuild": false,
     "files": ["dist/**/*"],
     "icon": "build/icon.png",
     "artifactName": "Chronosphere-${version}-${arch}.${ext}",
