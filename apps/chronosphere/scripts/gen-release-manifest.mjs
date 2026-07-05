@@ -27,13 +27,33 @@ if (!tag) {
 }
 const repo = process.env.GITHUB_REPOSITORY || 'the-real-antares/chronosphere';
 
-const rel = JSON.parse(
-  execFileSync('gh', ['api', `repos/${repo}/releases/tags/${tag}`], {
-    encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024,
-  }),
-);
-const assets = (rel.assets || []).filter((a) => a.state === 'uploaded');
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+const fetchRelease = () =>
+  JSON.parse(
+    execFileSync('gh', ['api', `repos/${repo}/releases/tags/${tag}`], {
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    }),
+  );
+
+// GitHub computes asset `digest` values asynchronously after upload; the seal job can
+// run before they are populated. Poll (bounded) until every uploaded asset carries a
+// sha256 digest rather than aborting on the first null — a null-digest abort would
+// leave the release unsealed and the site would never mirror it.
+let rel;
+let assets;
+for (let attempt = 1; ; attempt++) {
+  rel = fetchRelease();
+  assets = (rel.assets || []).filter((a) => a.state === 'uploaded');
+  const pending = assets.filter((a) => a.name !== 'manifest.json' && !a.digest);
+  if (assets.length > 0 && pending.length === 0) break;
+  if (attempt >= 15) {
+    console.error(`asset digests still missing after ${attempt} tries: ${pending.map((a) => a.name).join(', ')}`);
+    process.exit(1);
+  }
+  console.error(`waiting for asset digests (${pending.length} pending), attempt ${attempt}…`);
+  sleep(5000);
+}
 
 // The five installer files the website serves, matched by STABLE filename suffix so
 // the site never has to template or guess a versioned filename.
