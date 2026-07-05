@@ -3,6 +3,7 @@ import type {
   ArchiveQuery,
   ContributorDto,
   HashAnnotation,
+  GroupVersionDto,
   MapCardDto,
   MapDetailDto,
   Paged,
@@ -182,6 +183,10 @@ export function createApiClient(config: ApiClientConfig) {
 
     getMapDetail(slug: string): Promise<ApiResult<MapDetailDto>> {
       return request<MapDetailDto>(`/api/v1/maps/${encodeURIComponent(slug)}`);
+    },
+
+    getGroupVersions(slug: string): Promise<ApiResult<{ versions: GroupVersionDto[] }>> {
+      return request<{ versions: GroupVersionDto[] }>(`/api/v1/maps/${encodeURIComponent(slug)}/versions`);
     },
 
     // --- reviews ---------------------------------------------------------------

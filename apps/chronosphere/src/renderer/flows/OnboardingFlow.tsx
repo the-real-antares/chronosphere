@@ -141,7 +141,7 @@ export function OnboardingFlow() {
     void actions.completeOnboarding(folders);
   };
 
-  const apiBase = state.settings?.apiBase ?? 'https://the-real-antares.com';
+  const apiBase = state.settings?.apiBase ?? 'http://localhost:3000';
   const unaddedDetected = detected.filter((p) => !folders.includes(p));
 
   return (

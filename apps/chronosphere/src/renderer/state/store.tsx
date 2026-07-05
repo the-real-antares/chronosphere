@@ -189,6 +189,12 @@ export interface ReviewModalState {
   error: string | null;
 }
 
+export interface VersionPickerState {
+  open: boolean;
+  slug: string | null;
+  mapName: string;
+}
+
 export interface SessionState {
   signedIn: boolean;
   handle: string | null;
@@ -233,6 +239,7 @@ export interface AppState {
   contribute: ContributeState;
   tidy: TidyState;
   reviewModal: ReviewModalState;
+  versionPicker: VersionPickerState;
   settingsModalOpen: boolean;
   activityDrawerOpen: boolean;
   toasts: ToastItem[];
@@ -295,6 +302,7 @@ export function createInitialState(): AppState {
       text: '',
       error: null,
     },
+    versionPicker: { open: false, slug: null, mapName: '' },
     settingsModalOpen: false,
     activityDrawerOpen: false,
     toasts: [],
@@ -364,6 +372,8 @@ type Action =
   | { type: 'reviewModal/step'; step: ReviewModalStep }
   | { type: 'reviewModal/draft'; rating: number | null; text: string | null }
   | { type: 'reviewModal/error'; message: string | null }
+  | { type: 'versionPicker/open'; slug: string; mapName: string }
+  | { type: 'versionPicker/close' }
   | { type: 'toast/push'; toast: ToastItem }
   | { type: 'toast/dismiss'; id: number }
   | { type: 'activity/add'; entry: ActivityEntry }
@@ -599,6 +609,10 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case 'reviewModal/close':
       return { ...state, reviewModal: { ...state.reviewModal, open: false } };
+    case 'versionPicker/open':
+      return { ...state, versionPicker: { open: true, slug: action.slug, mapName: action.mapName } };
+    case 'versionPicker/close':
+      return { ...state, versionPicker: { ...state.versionPicker, open: false } };
     case 'reviewModal/step':
       return { ...state, reviewModal: { ...state.reviewModal, step: action.step, error: null } };
     case 'reviewModal/draft':
@@ -1563,6 +1577,14 @@ function createActions(deps: Deps) {
     dispatch({ type: 'reviewModal/close' });
   }
 
+  function openVersionPicker(slug: string, mapName: string): void {
+    dispatch({ type: 'versionPicker/open', slug, mapName });
+  }
+
+  function closeVersionPicker(): void {
+    dispatch({ type: 'versionPicker/close' });
+  }
+
   function setReviewModalStep(step: ReviewModalStep): void {
     dispatch({ type: 'reviewModal/step', step });
   }
@@ -1797,6 +1819,8 @@ function createActions(deps: Deps) {
     openReviewModal,
     closeReviewModal,
     setReviewModalStep,
+    openVersionPicker,
+    closeVersionPicker,
     setReviewDraft,
     submitReview,
     markHelpful,

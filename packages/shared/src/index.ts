@@ -7,4 +7,6 @@ export * from './mapfile/packs.ts';
 export * from './mapfile/parse.ts';
 export * from './mapfile/preview.ts';
 export * from './mapkit/index.ts';
+export * from './mapkit/lint-types.ts';
+export * from './mapkit/lint.ts';
 export * from './testing/fixtures.ts';

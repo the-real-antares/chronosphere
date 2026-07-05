@@ -10,6 +10,7 @@ import { OnboardingFlow } from './flows/OnboardingFlow.tsx';
 import { ReviewModal } from './flows/ReviewModal.tsx';
 import { SettingsModal } from './flows/SettingsModal.tsx';
 import { TidyModal } from './flows/TidyModal.tsx';
+import { VersionPickerModal } from './flows/VersionPickerModal.tsx';
 import { ArchivePane } from './library/ArchivePane.tsx';
 import { DiskPane } from './library/DiskPane.tsx';
 import { useActions, useAppState, type Pane } from './state/store.tsx';
@@ -44,6 +45,7 @@ function useGlobalKeyboard() {
 
       if (e.key === 'Escape') {
         // Overlays close outer-first: modals → expanded detail → drawer → multi-select.
+        if (state.versionPicker.open) return actions.closeVersionPicker();
         if (state.reviewModal.open) return actions.closeReviewModal();
         if (state.contribute.open) return actions.closeContribute();
         if (state.tidy.open) return actions.closeTidy();
@@ -165,6 +167,7 @@ function LibraryScreen() {
       <ContributeModal />
       <TidyModal />
       <ReviewModal />
+      <VersionPickerModal />
     </div>
   );
 }

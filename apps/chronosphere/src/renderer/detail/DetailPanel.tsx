@@ -46,7 +46,7 @@ import { ExpandedView } from './ExpandedView.tsx';
 export function DetailPanel() {
   const { state, actions } = useStore();
 
-  const apiBase = state.settings?.apiBase ?? 'https://the-real-antares.com';
+  const apiBase = state.settings?.apiBase ?? 'http://localhost:3000';
   const selTarget = state.selection.target;
   const multi = state.selection.multi;
   const detailDto = state.detail.detail;

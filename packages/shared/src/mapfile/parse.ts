@@ -41,6 +41,27 @@ export interface ParsedMapFile {
   aiTeamCount: number;
   referencedObjects: string[];
   isoMapPackValid: boolean | null;
+  // --- Additive linter-foundation fields (backward compatible). See docs/LINTER_SPEC.md PART 4.2. ---
+  /** [Map] LocalSize=x,y,w,h → all four parts (null when absent or <4 int parts). WAE throws on missing → we flag it in meta. */
+  localSize: { x: number; y: number; width: number; height: number } | null;
+  /** [Map] Size parts[0]/[1] (the paint-region origin; parts[2]/[3] feed width/height). null when absent/invalid. */
+  sizeOrigin: { x: number; y: number } | null;
+  /** Raw int([Basic] MaxPlayer) — the DECLARED value, never the derived maxPlayers. null when absent/non-int. */
+  maxPlayerDeclared: number | null;
+  /** Raw int([Basic] MinPlayer). null when absent/non-int. */
+  minPlayerDeclared: number | null;
+  /** [Basic] Official typed flag: {yes,true,1}→true, {no,false,0}→false, else null. */
+  official: boolean | null;
+  /** [Basic] MultiplayerOnly typed flag. */
+  multiplayerOnly: boolean | null;
+  /** int([Basic] RequiredAddOn) (1 ⇒ requires Yuri's Revenge). null when absent/non-int. */
+  requiredAddOn: number | null;
+  /** int([Basic] NewINIFormat) — the map-format revision. null when absent/non-int. */
+  newIniFormat: number | null;
+  /** True when a [Header] section is present (non-standard for hand-authored maps). */
+  hasHeaderSection: boolean;
+  /** True when the [Map] Theater token (uppercased) is a known theater in THEATER_LABEL_BY_TOKEN. */
+  theaterKnown: boolean;
 }
 
 /** The four object lists whose values reference rules.ini object ids. */
@@ -80,6 +101,62 @@ function sectionKeyCount(ini: IniFile, name: string): number {
   return section ? Object.keys(section).length : 0;
 }
 
+/** Typed [Basic]-style flag: {yes,true,1}→true, {no,false,0}→false, else null. */
+function boolFlagOrNull(value: string | undefined): boolean | null {
+  if (value === undefined) return null;
+  const t = value.trim().toLowerCase();
+  if (t === 'yes' || t === 'true' || t === '1') return true;
+  if (t === 'no' || t === 'false' || t === '0') return false;
+  return null;
+}
+
+/** x,y,w,h → all four parts as ints (null when <4 parts or any non-int). */
+function parseRectQuad(
+  value: string | undefined,
+): { x: number; y: number; width: number; height: number } | null {
+  if (value === undefined) return null;
+  const parts = value.split(',');
+  if (parts.length < 4) return null;
+  const x = intOrNull(parts[0]);
+  const y = intOrNull(parts[1]);
+  const width = intOrNull(parts[2]);
+  const height = intOrNull(parts[3]);
+  if (x === null || y === null || width === null || height === null) return null;
+  return { x, y, width, height };
+}
+
+/** Size parts[0]/[1] → { x, y } (null when <2 parts or non-int). */
+function parseOriginXY(value: string | undefined): { x: number; y: number } | null {
+  if (value === undefined) return null;
+  const parts = value.split(',');
+  if (parts.length < 2) return null;
+  const x = intOrNull(parts[0]);
+  const y = intOrNull(parts[1]);
+  if (x === null || y === null) return null;
+  return { x, y };
+}
+
+/**
+ * Collect every TaskForce member unit id: [TaskForces] index→id, then each
+ * [<id>] body's numeric member keys hold `count,unitId`. Used to widen
+ * referencedObjects so the needs-mod verdict catches mod-only recruits.
+ */
+function collectTaskForceUnitIds(ini: IniFile): string[] {
+  const out: string[] = [];
+  const registry = ini.section('TaskForces');
+  if (!registry) return out;
+  for (const taskForceId of Object.values(registry)) {
+    const body = ini.section(taskForceId.trim());
+    if (!body) continue;
+    for (const [key, raw] of Object.entries(body)) {
+      if (!/^\d+$/.test(key)) continue; // numeric member slots only (skip Name/Group)
+      const unitId = raw.split(',')[1]?.trim();
+      if (unitId !== undefined && unitId.length > 0) out.push(unitId);
+    }
+  }
+  return out;
+}
+
 export function parseMapFile(bytes: Uint8Array): ParsedMapFile {
   const ini = IniFile.parse(bytesToText(bytes));
   if (ini.sectionNames().length === 0) {
@@ -96,10 +173,11 @@ export function parseMapFile(bytes: Uint8Array): ParsedMapFile {
   const height = mapSize?.height ?? null;
 
   const theaterRaw = ini.get('Map', 'Theater');
-  const theater =
-    theaterRaw !== undefined && theaterRaw !== ''
-      ? (THEATER_LABEL_BY_TOKEN[theaterRaw.toUpperCase()] ?? theaterRaw)
-      : null;
+  const theaterPresent = theaterRaw !== undefined && theaterRaw !== '';
+  const theater = theaterPresent
+    ? (THEATER_LABEL_BY_TOKEN[theaterRaw.toUpperCase()] ?? theaterRaw)
+    : null;
+  const theaterKnown = theaterPresent && THEATER_LABEL_BY_TOKEN[theaterRaw.toUpperCase()] !== undefined;
 
   const waypoints = ini.section('Waypoints') ?? {};
   const startWaypoints: number[] = [];
@@ -152,6 +230,14 @@ export function parseMapFile(bytes: Uint8Array): ParsedMapFile {
       }
     }
   }
+  // Union TaskForce member unit ids so the needs-mod verdict catches mod-only
+  // recruits (e.g. survival maps that spawn a modded unit via AI teams).
+  for (const unitId of collectTaskForceUnitIds(ini)) {
+    if (!seen.has(unitId)) {
+      seen.add(unitId);
+      referencedObjects.push(unitId);
+    }
+  }
 
   let isoMapPackValid: boolean | null = null;
   if (hasIsoMapPack) {
@@ -183,5 +269,15 @@ export function parseMapFile(bytes: Uint8Array): ParsedMapFile {
     aiTeamCount,
     referencedObjects,
     isoMapPackValid,
+    localSize: parseRectQuad(ini.get('Map', 'LocalSize')),
+    sizeOrigin: parseOriginXY(ini.get('Map', 'Size')),
+    maxPlayerDeclared: intOrNull(basic['MaxPlayer']),
+    minPlayerDeclared: intOrNull(basic['MinPlayer']),
+    official: boolFlagOrNull(basic['Official']),
+    multiplayerOnly: boolFlagOrNull(basic['MultiplayerOnly']),
+    requiredAddOn: intOrNull(basic['RequiredAddOn']),
+    newIniFormat: intOrNull(basic['NewINIFormat']),
+    hasHeaderSection: ini.section('Header') !== undefined,
+    theaterKnown,
   };
 }

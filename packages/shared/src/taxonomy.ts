@@ -1,6 +1,7 @@
 /**
  * The shared vocabulary. Both clients (website + Chronosphere) and the backend
- * speak exactly these values — one vocabulary, reconciled across the archive.
+ * speak exactly these values — see design_handoff_antares_site/DESIGN.md §Taxonomy
+ * and design_handoff_chronosphere/DESIGN.md §9. One vocabulary, reconciled.
  */
 
 export const MAP_TYPES = [
@@ -72,7 +73,7 @@ export type ModerationStatus = (typeof MODERATION_STATUSES)[number];
 export const REVIEW_STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
-export const ARCHIVE_SORTS = ['newest', 'downloads', 'rating'] as const;
+export const ARCHIVE_SORTS = ['newest', 'downloads', 'rating', 'quality'] as const;
 export type ArchiveSort = (typeof ARCHIVE_SORTS)[number];
 
 /** Player filter buckets used by both clients: Any / 2+ / 4+ / 6+ / 8. */

@@ -40,10 +40,32 @@ import { ArchiveThumb, SkeletonRows } from './visuals.tsx';
 const SIZE_WORDS: Record<SizeClass, string> = { small: 'Small', medium: 'Medium', large: 'Large' };
 const LOAD_MORE_THRESHOLD_PX = 240;
 
+/** Quality-score pill, coloured by band (green ≥8, gold ≥6, amber ≥4, red below). */
+function scorePillStyle(s: number) {
+  const [fg, bg] =
+    s >= 8
+      ? ['#4ade80', 'rgba(74,222,128,0.16)']
+      : s >= 6
+        ? ['#c9a24b', 'rgba(201,162,75,0.18)']
+        : s >= 4
+          ? ['#e0902e', 'rgba(224,144,46,0.16)']
+          : ['#e06a62', 'rgba(224,106,98,0.16)'];
+  return {
+    fontSize: 11,
+    fontWeight: 800,
+    padding: '1px 6px',
+    borderRadius: 5,
+    color: fg,
+    background: bg,
+    whiteSpace: 'nowrap' as const,
+    alignSelf: 'center' as const,
+  };
+}
+
 export function ArchivePane() {
   const { state, actions } = useStore();
   const archive = state.archive;
-  const apiBase = state.settings?.apiBase ?? 'https://the-real-antares.com';
+  const apiBase = state.settings?.apiBase ?? 'http://localhost:3000';
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // --- search box: live-typed locally, committed to the store (server query) debounced.
@@ -246,6 +268,7 @@ export function ArchivePane() {
               <option value="downloads">Most downloaded</option>
               <option value="newest">Newest</option>
               <option value="rating">Highest rated</option>
+              <option value="quality">Highest quality</option>
             </select>
             <span className="select-chevron">⌄</span>
           </label>
@@ -287,10 +310,40 @@ export function ArchivePane() {
                   <div className="row-name">
                     <span>{card.name}</span>
                     {card.authorId !== null ? <span className="verified-star">✦</span> : null}
+                    {(card.versionCount ?? 1) > 1 ? (
+                      <button
+                        type="button"
+                        className="row-versions"
+                        title={`Choose from ${card.versionCount} versions`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          actions.openVersionPicker(card.slug, card.name);
+                        }}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#c9a24b',
+                          marginLeft: 6,
+                          whiteSpace: 'nowrap',
+                          cursor: 'pointer',
+                          background: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          textDecoration: 'underline dotted',
+                        }}
+                      >
+                        {card.versionCount} versions ▾
+                      </button>
+                    ) : null}
                   </div>
                   <div className="row-meta">{archiveMetaLine(card)}</div>
                 </div>
                 <div className="row-right">
+                  {typeof card.lintScore === 'number' ? (
+                    <span className="row-score" title={`Quality ${card.lintScore.toFixed(1)}/10`} style={scorePillStyle(card.lintScore)}>
+                      {card.lintScore.toFixed(1)}
+                    </span>
+                  ) : null}
                   <div className="row-rating">
                     {card.rating !== null ? (
                       <div className="row-stars">

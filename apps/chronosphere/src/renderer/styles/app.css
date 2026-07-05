@@ -1,5 +1,9 @@
 /* ===========================================================================
-   Chronosphere — app stylesheet, on the Supergiant design system.
+   Chronosphere — app stylesheet.
+   Faithful port of design-reference/app/styles.md (the prototype's inline
+   styles turned into classes) on the Supergiant system. Colors, sizes and
+   keyframes are the prototype's exact values; class names are documented in
+   src/renderer/FOUNDATION.md.
    =========================================================================== */
 
 /* ---------------------------------------------------------------------------

@@ -77,6 +77,29 @@ export interface MapCardDto {
   versionHashes: string[];
   canonicalHash: string;
   latestHash: string;
+  /** Identities in this map's version group (>1 = re-uploads/versions folded into this card). */
+  versionCount?: number;
+  /** Deterministic 1–10 scripting/quality score (canonical version); null = not yet linted. */
+  lintScore?: number | null;
+}
+
+/** One member of a map's version group — a distinct-content version a client can install. */
+export interface GroupVersionDto {
+  slug: string;
+  name: string;
+  theater: Theater;
+  maxPlayers: number | null;
+  width: number;
+  height: number;
+  sizeClass: SizeClass;
+  healthVerdict: HealthVerdict | null;
+  lintScore: number | null;
+  downloads: number;
+  dateAdded: string;
+  /** Canonical version content hash — for client have-detection. */
+  canonicalHash: string;
+  /** The group's representative (the card the user opened this list from). */
+  isCanonical: boolean;
 }
 
 export interface MapDetailDto extends MapCardDto {

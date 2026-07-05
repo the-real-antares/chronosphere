@@ -1,6 +1,6 @@
 {
   "name": "@antares/chronosphere",
-  "version": "0.1.1",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "description": "Chronosphere — The Real Antares map manager. Desktop companion app.",
@@ -54,7 +54,7 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true
+      "notarize": { "teamId": "Y9HK2P37N8" }
     },
     "dmg": {
       "artifactName": "Chronosphere-${version}-${arch}.${ext}"
@@ -66,15 +66,11 @@
       "maintainer": "The Real Antares <maps@the-real-antares.com>",
       "artifactName": "Chronosphere-${version}-${arch}.${ext}"
     },
-    "publish": [
-      { "provider": "github", "owner": "the-real-antares", "repo": "chronosphere", "releaseType": "release" }
-    ]
-  },
-  "dependencies": {
-    "electron-updater": "^6.3.9"
+    "publish": [{ "provider": "github", "owner": "the-real-antares", "repo": "chronosphere", "releaseType": "release" }]
   },
   "devDependencies": {
     "@antares/shared": "*",
+    "electron-updater": "^6.3.9",
     "electron": "^36.0.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.25.0",

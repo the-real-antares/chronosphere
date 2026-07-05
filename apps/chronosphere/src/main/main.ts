@@ -45,8 +45,8 @@ function createWindow(): BrowserWindow {
 void app.whenReady().then(() => {
   registerIpcHandlers();
   createWindow();
-  // Auto-update from the GitHub Releases feed — packaged builds only. Downloads
-  // in the background and installs on the next quit.
+  // Auto-update from the generic feed at the-real-antares.com/updates (packaged
+  // builds only). Downloads in the background and installs on the next quit.
   if (app.isPackaged) {
     void updaterPkg.autoUpdater.checkForUpdatesAndNotify().catch(() => undefined);
   }

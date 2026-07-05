@@ -413,7 +413,8 @@ function SettingsModalInner() {
       <div className="modal-footer">
         <div style={{ minWidth: 0 }}>
           <div className="modal-footer-note">
-            Chronosphere {version !== null ? `v${version} ` : ''}· The Real Antares
+            Chronosphere {version !== null ? `v${version} ` : ''}· signed &amp; published by
+            Monolythium
           </div>
           <div className="modal-footer-note" style={{ marginTop: 2 }}>
             Unaffiliated with EA. Maps are player-made scenario files.

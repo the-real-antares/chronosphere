@@ -15,7 +15,7 @@
 import type { HealthReport } from '../types.ts';
 import { MapParseError, parseMapFile, type ParsedMapFile } from '../mapfile/parse.ts';
 
-export const MAPKIT_VERSION = '1.0.0';
+export const MAPKIT_VERSION = '1.1.0';
 
 export interface AnalyzeOptions {
   /** Object ids from an install's rules.ini; when absent, needs-mod detection is skipped. */
