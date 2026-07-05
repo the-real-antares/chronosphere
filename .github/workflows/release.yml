@@ -64,3 +64,28 @@ jobs:
         # No --mac/--win/--linux flag: electron-builder targets the host OS, so
         # each matrix job builds its own platform and publishes into one release.
         run: npx --no-install electron-builder --publish always
+
+  # Seal the release: emit + upload manifest.json ONLY after all three build legs
+  # finished uploading their assets. Its presence is the authoritative "release is
+  # complete" signal that the-real-antares.com waits for before mirroring — so the
+  # site never serves a half-uploaded release. Uploads a public JSON describing an
+  # already-public release; needs only the ephemeral GITHUB_TOKEN, never touches the box.
+  seal:
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate + upload sealed manifest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          node apps/chronosphere/scripts/gen-release-manifest.mjs "${{ github.ref_name }}" > manifest.json
+          cat manifest.json
+          gh release upload "${{ github.ref_name }}" manifest.json --clobber
