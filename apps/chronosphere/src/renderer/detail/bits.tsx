@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { sizeChipLabel, playersLabel, typeLabel } from '../lib/format.ts';
 import { PreviewCanvas } from './PreviewCanvas.tsx';
+import { RenderLightbox } from './RenderLightbox.tsx';
 import { TeamChip } from './TeamChip.tsx';
 import { useThumbMedia } from './media.ts';
 import type { DisplayFacts } from './context.ts';
@@ -69,35 +70,80 @@ export function FacetChips({ facts, signedIn }: { facts: DisplayFacts; signedIn:
 }
 
 // ---------------------------------------------------------------------------
-// Docked-compact preview thumb (embedded → archive thumb → placeholder)
+// Docked-compact preview thumb (embedded → archive thumb → placeholder).
+// When a full-res render exists (renderUrl), the thumb becomes a "view full
+// screen" button that opens the pan/zoom lightbox; without one it stays a
+// static tile (no broken full-screen offered — spec §4 fallback).
 
-export function PreviewThumb({ path, thumbUrl }: { path: string | null; thumbUrl: string | null }) {
+export function PreviewThumb({
+  path,
+  thumbUrl,
+  renderUrl = null,
+  cacheKey = null,
+  name = '',
+}: {
+  path: string | null;
+  thumbUrl: string | null;
+  renderUrl?: string | null;
+  cacheKey?: string | null;
+  name?: string;
+}) {
   const media = useThumbMedia(path, thumbUrl);
   const [imgFailed, setImgFailed] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   useEffect(() => {
     setImgFailed(false);
   }, [thumbUrl]);
 
+  let inner: ReactNode = null;
   if (media.kind === 'embedded') {
-    return (
-      <div className="detail-thumb">
-        <PreviewCanvas data={media.data} />
-      </div>
+    inner = <PreviewCanvas data={media.data} />;
+  } else if (media.kind === 'image' && !imgFailed) {
+    inner = (
+      <img
+        src={media.url}
+        alt=""
+        draggable={false}
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={() => setImgFailed(true)}
+      />
     );
   }
-  if (media.kind === 'image' && !imgFailed) {
-    return (
-      <div className="detail-thumb">
-        <img
-          src={media.url}
-          alt=""
-          draggable={false}
-          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={() => setImgFailed(true)}
+  // inner === null → styled "no preview available" tile (never a broken image).
+  const placeholder = inner === null ? ' thumb-placeholder' : '';
+  const canView = renderUrl !== null;
+
+  return (
+    <>
+      {canView ? (
+        <button
+          type="button"
+          className={`detail-thumb detail-thumb-btn${placeholder}`}
+          title="View full screen"
+          aria-label={`View the full-screen render${name !== '' ? ` of ${name}` : ''}`}
+          onClick={() => setLightboxOpen(true)}
+        >
+          {inner}
+          <span className="thumb-zoom-hint" aria-hidden="true">
+            ⤢
+          </span>
+        </button>
+      ) : (
+        <div
+          className={`detail-thumb${placeholder}`}
+          {...(inner === null ? { role: 'img', 'aria-label': 'no preview available' } : {})}
+        >
+          {inner}
+        </div>
+      )}
+      {lightboxOpen ? (
+        <RenderLightbox
+          renderUrl={renderUrl}
+          cacheKey={cacheKey}
+          name={name}
+          onClose={() => setLightboxOpen(false)}
         />
-      </div>
-    );
-  }
-  // Styled "no preview available" tile — never a broken image (spec §4.3).
-  return <div className="detail-thumb thumb-placeholder" role="img" aria-label="no preview available" />;
+      ) : null}
+    </>
+  );
 }

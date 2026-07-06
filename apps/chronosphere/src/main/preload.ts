@@ -15,6 +15,7 @@ import {
   type ScanProgress,
   type UndoResult,
   type Unsubscribe,
+  type UpdateStatus,
 } from '../ipc.ts';
 
 /** The typed bridge the renderer sees as window.chrono. */
@@ -76,6 +77,10 @@ const chrono: ChronoApi = {
   auth: {
     beginDiscord: () =>
       ipcRenderer.invoke(IPC.authBeginDiscord) as Promise<{ token: string; handle: string } | null>,
+  },
+  updates: {
+    check: () => ipcRenderer.invoke(IPC.updatesCheck) as Promise<void>,
+    onStatus: (cb) => subscribe<UpdateStatus>(IPC.updatesStatus, cb),
   },
 };
 

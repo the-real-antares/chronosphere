@@ -144,6 +144,21 @@ export interface AppInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Auto-update (electron-updater, packaged builds only)
+
+/**
+ * A terminal outcome of a user-initiated update check, broadcast main → renderer.
+ * The renderer shows its own "Checking…" toast on click; these carry the result.
+ * `dev` is emitted when the check runs outside a packaged build (no feed).
+ */
+export type UpdateStatus =
+  | { kind: 'available'; version: string }
+  | { kind: 'not-available'; version: string }
+  | { kind: 'downloaded'; version: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'dev' };
+
+// ---------------------------------------------------------------------------
 // Channels
 
 export const IPC = {
@@ -171,6 +186,9 @@ export const IPC = {
   fileReadBase64: 'file:read-base64',
   appInfo: 'app:info',
   authBeginDiscord: 'auth:begin-discord',
+  updatesCheck: 'updates:check',
+  /** main → renderer event. */
+  updatesStatus: 'updates:status',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -225,5 +243,11 @@ export interface ChronoApi {
   auth: {
     /** Open Discord OAuth in the browser; capture the returned token via a loopback server. */
     beginDiscord(): Promise<{ token: string; handle: string } | null>;
+  };
+  updates: {
+    /** Trigger a user-initiated update check; the result arrives via onStatus. */
+    check(): Promise<void>;
+    /** Subscribe to update-check outcomes (available / not-available / downloaded / error / dev). */
+    onStatus(cb: (status: UpdateStatus) => void): Unsubscribe;
   };
 }

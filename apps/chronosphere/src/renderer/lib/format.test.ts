@@ -32,6 +32,7 @@ function card(over: Partial<MapCardDto> = {}): MapCardDto {
     maxPlayers: 4,
     teamLayout: { value: '2v2', confidence: 'high' },
     tags: [],
+    aiTags: [],
     downloads: 24900,
     rating: 4.6,
     reviewCount: 128,

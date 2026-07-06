@@ -44,6 +44,72 @@ export const SIZE_CLASS_LABELS: Record<SizeClass, string> = {
 export const TEAM_LAYOUTS = ['1v1', '2v2', '3v3', '4v4', 'ffa'] as const;
 export type TeamLayout = (typeof TEAM_LAYOUTS)[number];
 
+/**
+ * LLM enrichment tags — the fixed vocabulary the Codex pass picks from
+ * (CODEX_MAPS_RUNBOOK.md §5: mode + theme + curation). Stored per identity in
+ * `aiTags`; drives the archive tag facet and the chips on cards/detail.
+ */
+export const AI_TAGS = [
+  // mode
+  '1v1',
+  '2v2',
+  'ffa',
+  'survival',
+  'coop-mission',
+  'naval',
+  'tower-defense',
+  'megawealth',
+  'unholy-alliance',
+  'no-superweapons',
+  // theme
+  'urban-warfare',
+  'naval-heavy',
+  'resource-race',
+  'chokepoint',
+  'open-field',
+  'maze',
+  'asymmetric',
+  'remake',
+  'joke-troll',
+  // curation
+  'beginner-friendly',
+  'competitive',
+  'casual',
+  'showcase',
+] as const;
+export type AiTag = (typeof AI_TAGS)[number];
+
+export const AI_TAG_LABELS: Record<AiTag, string> = {
+  '1v1': '1v1',
+  '2v2': '2v2',
+  ffa: 'FFA',
+  survival: 'Survival',
+  'coop-mission': 'Co-op mission',
+  naval: 'Naval',
+  'tower-defense': 'Tower defense',
+  megawealth: 'Megawealth',
+  'unholy-alliance': 'Unholy alliance',
+  'no-superweapons': 'No superweapons',
+  'urban-warfare': 'Urban warfare',
+  'naval-heavy': 'Naval heavy',
+  'resource-race': 'Resource race',
+  chokepoint: 'Chokepoint',
+  'open-field': 'Open field',
+  maze: 'Maze',
+  asymmetric: 'Asymmetric',
+  remake: 'Remake',
+  'joke-troll': 'Joke / troll',
+  'beginner-friendly': 'Beginner-friendly',
+  competitive: 'Competitive',
+  casual: 'Casual',
+  showcase: 'Showcase',
+};
+
+/** Display label for an AI tag; falls back to the raw value if off-vocabulary. */
+export function aiTagLabel(tag: string): string {
+  return (AI_TAG_LABELS as Record<string, string>)[tag] ?? tag;
+}
+
 /** Team layout is always a suggestion, never a fact — carry the confidence with the value. */
 export const CONFIDENCES = ['low', 'medium', 'high'] as const;
 export type Confidence = (typeof CONFIDENCES)[number];

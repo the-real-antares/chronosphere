@@ -339,6 +339,11 @@ export function DetailPanel() {
     apiBase,
     det?.thumbnailUrl ?? (target?.kind === 'archive' ? target.card.thumbnailUrl : null),
   );
+  // Full-res render (2048px) for the click-to-fullscreen lightbox — only present
+  // once the archive has generated one; null → thumb stays a static tile.
+  const renderUrl = resolveAssetUrl(apiBase, det?.renderUrl ?? null);
+  const renderCacheKey =
+    det?.canonicalHash ?? (target?.kind === 'archive' ? target.card.canonicalHash : null);
 
   // --- render --------------------------------------------------------------------
 
@@ -478,7 +483,13 @@ export function DetailPanel() {
                 </>
               ) : target !== null && facts !== null ? (
                 <>
-                  <PreviewThumb path={localPath} thumbUrl={thumbUrl} />
+                  <PreviewThumb
+                    path={localPath}
+                    thumbUrl={thumbUrl}
+                    renderUrl={renderUrl}
+                    cacheKey={renderCacheKey}
+                    name={facts.name}
+                  />
                   <div className="detail-center">
                     <div className="detail-name">
                       <span>{facts.name}</span>

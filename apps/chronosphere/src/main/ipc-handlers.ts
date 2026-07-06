@@ -33,6 +33,7 @@ import { readFileBase64Within } from './lib/read-file.ts';
 import { loadScanCache, saveScanCache, type ScanCache } from './lib/scan-cache.ts';
 import { resolveScanRoots, scanGameFolder } from './lib/scanner.ts';
 import { mergeSettings, readSettings, writeSettings } from './lib/settings.ts';
+import { checkForUpdatesManually, registerUpdaterEvents } from './lib/updates.ts';
 import { WatchManager } from './lib/watcher.ts';
 
 /** All main-process services behind the typed IPC surface. */
@@ -178,6 +179,16 @@ export function registerIpcHandlers(): void {
       electronVersion: process.versions.electron ?? 'unknown',
     };
   });
+
+  // --- auto-update (electron-updater; packaged builds only) --------------------
+  // Attach the updater event listeners once, then let the renderer trigger a
+  // user-initiated check. The startup auto-check in main.ts shares these events
+  // but is gated out (manualCheck) so it stays silent.
+
+  registerUpdaterEvents((status) => broadcast(IPC.updatesStatus, status));
+  ipcMain.handle(IPC.updatesCheck, () =>
+    checkForUpdatesManually((status) => broadcast(IPC.updatesStatus, status)),
+  );
 
   // --- Discord sign-in (loopback token handshake) -----------------------------
   // Open the browser to the web OAuth with a one-shot local port; the web

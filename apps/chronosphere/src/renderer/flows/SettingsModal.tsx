@@ -107,13 +107,10 @@ function SettingsModalInner() {
     });
   };
 
-  const checkUpdates = (): void => {
-    actions.pushToast({
-      kind: 'ok',
-      title: 'Up to date.',
-      sub: `Chronosphere ${version !== null ? `v${version}` : ''} is the latest signed build.`.replace('  ', ' '),
-    });
-  };
+  // Real electron-updater check: shows "Checking…" now, then the outcome toast
+  // (available / up-to-date / downloaded / error) arrives from main via the
+  // updates status subscription wired in the store.
+  const checkUpdates = (): void => actions.checkForUpdates();
 
   const storage = state.storage;
   const quarantineCount = storage?.quarantine.reduce((sum, q) => sum + q.count, 0) ?? 0;

@@ -63,6 +63,8 @@ export interface MapCardDto {
   maxPlayers: number | null; // null → Mission / N-A
   teamLayout: TeamLayoutSuggestion | null;
   tags: string[];
+  /** LLM-generated tags from the fixed enrichment vocabulary (AI_TAGS). */
+  aiTags: string[];
   downloads: number;
   rating: number | null; // identity-level mean of approved reviews
   reviewCount: number;
@@ -166,6 +168,8 @@ export interface ArchiveQuery {
   size?: SizeClass | 'any';
   health?: HealthVerdict | 'all';
   team?: TeamLayout | 'any';
+  /** Single LLM enrichment tag (AI_TAGS) the map must carry. */
+  tag?: string;
   sort?: ArchiveSort;
   page?: number; // 1-based
   perPage?: number; // default 12 (web), app may ask more

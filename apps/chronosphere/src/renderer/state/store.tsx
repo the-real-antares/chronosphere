@@ -23,7 +23,7 @@ import type {
   MapDetailDto,
   ReviewsBlockDto,
 } from '@antares/shared/types.ts';
-import type { ChronoSettings, QuarantineSummary, ScannedFile } from '../../ipc.ts';
+import type { ChronoSettings, QuarantineSummary, ScannedFile, UpdateStatus } from '../../ipc.ts';
 import { createApiClient, type ApiClient, type AuthMode } from '../api/client.ts';
 import { base64ToBytes } from '../api/client.ts';
 import { healthWord } from '../lib/format.ts';
@@ -1739,6 +1739,49 @@ function createActions(deps: Deps) {
     dispatch({ type: 'phase/set', phase: 'onboarding' });
   }
 
+  // --- updates --------------------------------------------------------------------------------
+
+  /** Kick off a user-initiated update check; results arrive via handleUpdateStatus. */
+  function checkForUpdates(): void {
+    pushToast({ kind: 'info', glyph: '⟳', title: 'Checking for updates…' });
+    void window.chrono.updates.check();
+  }
+
+  /** Turn an electron-updater outcome (main → renderer) into a toast. */
+  function handleUpdateStatus(status: UpdateStatus): void {
+    switch (status.kind) {
+      case 'available':
+        pushToast({
+          kind: 'ok',
+          glyph: '↑',
+          title: `Update available (v${status.version})`,
+          sub: 'Downloading in the background…',
+        });
+        break;
+      case 'not-available':
+        pushToast({ kind: 'ok', title: `You’re on the latest version (v${status.version}).` });
+        break;
+      case 'downloaded':
+        pushToast({
+          kind: 'ok',
+          glyph: '↑',
+          title: `Update v${status.version} downloaded.`,
+          sub: 'Restart Chronosphere to install it.',
+        });
+        break;
+      case 'error':
+        pushToast({ kind: 'err', title: 'Update check failed.', sub: status.message });
+        break;
+      case 'dev':
+        pushToast({
+          kind: 'info',
+          title: 'Updates run in the installed build.',
+          sub: 'Dev mode doesn’t check the release feed.',
+        });
+        break;
+    }
+  }
+
   // --- events from main ---------------------------------------------------------------------
 
   function handleScanProgress(done: number, total: number): void {
@@ -1836,6 +1879,9 @@ function createActions(deps: Deps) {
     closeSettingsModal,
     toggleActivityDrawer,
     closeActivityDrawer,
+    // updates
+    checkForUpdates,
+    handleUpdateStatus,
     // events
     handleScanProgress,
   };
@@ -1883,9 +1929,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const offChanged = window.chrono.watch.onFilesChanged(() => {
       void actions.watcherRescan();
     });
+    const offUpdates = window.chrono.updates.onStatus((status) => {
+      actions.handleUpdateStatus(status);
+    });
     return () => {
       offProgress();
       offChanged();
+      offUpdates();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
