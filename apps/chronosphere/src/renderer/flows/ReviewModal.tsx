@@ -59,8 +59,8 @@ export function ReviewModal() {
               onChange={(e) => actions.setReviewDraft({ text: e.target.value })}
             />
             <div className="modal-footer-note" style={{ marginTop: 10 }}>
-              Reviews pass light moderation before publishing. Stamped with the version you have
-              installed.
+              Your review posts immediately, stamped with the version you have installed. Anyone can
+              report it if something’s off.
             </div>
             {modal.error !== null ? (
               <div style={{ color: 'var(--error-text)', fontSize: 12, marginTop: 8 }}>
@@ -85,10 +85,10 @@ export function ReviewModal() {
           <div style={{ textAlign: 'center', padding: '18px 0 8px' }}>
             <div style={{ fontSize: 30, color: 'var(--green)' }}>✓</div>
             <div className="pane-state-title" style={{ marginTop: 8 }}>
-              Sent — pending review.
+              Posted — it’s live.
             </div>
             <div className="onb-body-sm" style={{ marginTop: 6 }}>
-              It’ll appear once it clears light moderation.
+              Thanks for the review. It’s visible on the map now.
             </div>
           </div>
         ) : null}

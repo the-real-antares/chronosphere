@@ -2270,11 +2270,15 @@ function createActions(deps: Deps) {
         pushToast({ kind: 'ok', title: `You’re on the latest version (v${status.version}).` });
         break;
       case 'downloaded':
+        // A real action button — clicking it quits, installs, and relaunches, so the
+        // user never has to know that closing the window on macOS doesn't fully quit.
         pushToast({
           kind: 'ok',
-          glyph: '↑',
-          title: `Update v${status.version} downloaded.`,
-          sub: 'Restart Chronosphere to install it.',
+          glyph: '✓',
+          title: `Update v${status.version} ready`,
+          sub: 'Restart now to install it.',
+          actionLabel: 'Restart now',
+          onAction: () => void window.chrono.updates.quitAndInstall(),
         });
         break;
       case 'error':

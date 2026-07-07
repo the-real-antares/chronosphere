@@ -117,6 +117,19 @@ export interface GroupVersionDto {
   isCanonical: boolean;
 }
 
+/** Structured facts parsed from the map file itself (map_facts). */
+export interface MapFactsDto {
+  /** Declared CnCNet game modes (standard/teamgame/…). */
+  gameModes: string[];
+  /** Active gameplay-feature keys (crates, ionStorms, …); labels via featureLabel. */
+  features: string[];
+  official: boolean;
+  mission: boolean;
+  modded: boolean;
+  minPlayer: number | null;
+  maxPlayer: number | null;
+}
+
 export interface MapDetailDto extends MapCardDto {
   description: string | null;
   health: HealthReport | null;
@@ -125,6 +138,25 @@ export interface MapDetailDto extends MapCardDto {
   versions: MapVersionDto[];
   latestVersionId: string;
   canonicalVersionId: string;
+  /** Map-file facts for the canonical version (null if not yet extracted). */
+  facts: MapFactsDto | null;
+}
+
+/** A community data-correction request (crowdsourced attribution/metadata fix). */
+export interface CorrectionDto {
+  id: string;
+  targetSlug: string;
+  /** Map name — included in admin listings for context. */
+  targetName?: string;
+  field: string;
+  currentValue: string | null;
+  proposedValue: string;
+  note: string | null;
+  status: 'pending' | 'accepted' | 'rejected';
+  requestedByHandle: string;
+  decidedByHandle: string | null;
+  decidedAt: string | null;
+  createdAt: string;
 }
 
 /** A flat, one-level reply to a review. */
@@ -255,6 +287,12 @@ export interface ArchiveQuery {
   tags?: string[];
   /** Coarse lint-score band (QUALITY_BANDS); unlinted maps never match. */
   quality?: QualityBand;
+  /** Declared CnCNet game mode (from map_facts.game_modes), e.g. 'teamgame'. */
+  gameMode?: string;
+  /** Only official (Westwood-authored) maps. */
+  official?: boolean;
+  /** Only single-player missions / campaigns. */
+  mission?: boolean;
   /** `'me'` restricts to the authed viewer's bookmarked maps (no-op when unauth). */
   bookmarked?: 'me';
   /**

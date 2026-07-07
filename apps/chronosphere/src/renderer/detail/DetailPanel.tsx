@@ -523,7 +523,6 @@ export function DetailPanel() {
                         </span>
                       ) : null}
                     </div>
-                    {det?.description ? <p className="detail-description">{det.description}</p> : null}
                     <div className="detail-quote">{quote}</div>
                     {nudgeRow !== null ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>

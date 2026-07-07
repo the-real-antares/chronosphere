@@ -80,6 +80,7 @@ const chrono: ChronoApi = {
   },
   updates: {
     check: () => ipcRenderer.invoke(IPC.updatesCheck) as Promise<void>,
+    quitAndInstall: () => ipcRenderer.invoke(IPC.updatesQuitInstall) as Promise<void>,
     onStatus: (cb) => subscribe<UpdateStatus>(IPC.updatesStatus, cb),
   },
   onDeepLink: (cb) => subscribe<string>(IPC.deepLink, cb),

@@ -187,6 +187,8 @@ export const IPC = {
   appInfo: 'app:info',
   authBeginDiscord: 'auth:begin-discord',
   updatesCheck: 'updates:check',
+  /** renderer → main: quit and install a downloaded update now. */
+  updatesQuitInstall: 'updates:quit-install',
   /** main → renderer event. */
   updatesStatus: 'updates:status',
   /** main → renderer event: a chronosphere://map/<slug> deep link was opened. */
@@ -251,6 +253,8 @@ export interface ChronoApi {
   updates: {
     /** Trigger a user-initiated update check; the result arrives via onStatus. */
     check(): Promise<void>;
+    /** Quit and install a downloaded update immediately (the "Restart now" action). */
+    quitAndInstall(): Promise<void>;
     /** Subscribe to update-check outcomes (available / not-available / downloaded / error / dev). */
     onStatus(cb: (status: UpdateStatus) => void): Unsubscribe;
   };

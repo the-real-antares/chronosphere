@@ -1452,18 +1452,29 @@ textarea.input {
   flex: 1;
 }
 .dock-icon-btn {
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  color: var(--text-mid);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  background: var(--chrome-hover);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--text-hi);
   font-family: inherit;
-  font-size: 11px;
-  padding: 3px 9px;
+  font-size: 15px;
+  line-height: 1;
+  padding: 6px 12px;
   cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 .dock-icon-btn:hover {
-  background: var(--chrome-hover);
-  border-color: var(--line-strong);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.dock-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .detail-body {
   flex: 1;

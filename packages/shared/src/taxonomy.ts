@@ -319,7 +319,7 @@ export interface ArchiveFacetOption {
 }
 
 export interface ArchiveFacetDef {
-  key: 'type' | 'minPlayers' | 'theater' | 'size' | 'health' | 'team' | 'quality' | 'tags';
+  key: 'type' | 'minPlayers' | 'theater' | 'size' | 'health' | 'team' | 'quality' | 'gameMode' | 'tags';
   label: string;
   kind: ArchiveFacetKind;
   options: readonly ArchiveFacetOption[];
@@ -328,6 +328,67 @@ export interface ArchiveFacetDef {
   /** Multi-select combine semantics. */
   combine?: 'or' | 'and';
 }
+
+/**
+ * CnCNet game modes a map declares in `[Basic] GameMode(s)` — extracted into
+ * `map_facts.game_modes` for ~93% of the archive. Drives the "Mode" facet.
+ */
+export const MAP_GAME_MODES = [
+  'standard', 'teamgame', 'meatgrind', 'airwar', 'megawealth', 'cooperative', 'duel', 'nukewar', 'navalwar',
+] as const;
+export type MapGameMode = (typeof MAP_GAME_MODES)[number];
+export const MAP_GAME_MODE_LABELS: Record<MapGameMode, string> = {
+  standard: 'Standard',
+  teamgame: 'Team game',
+  meatgrind: 'Meat grind',
+  airwar: 'Air war',
+  megawealth: 'Mega wealth',
+  cooperative: 'Co-op',
+  duel: 'Duel',
+  nukewar: 'Nuke war',
+  navalwar: 'Naval war',
+};
+/** Human label for a declared game mode (falls back to the raw key). */
+export function gameModeLabel(mode: string): string {
+  return MAP_GAME_MODE_LABELS[mode as MapGameMode] ?? mode;
+}
+
+/** Displayable gameplay-feature flags extracted into `map_facts.features`. */
+export const MAP_FEATURE_LABELS: Record<string, string> = {
+  crates: 'Crates',
+  mcvRedeploy: 'MCV redeploy',
+  meteorites: 'Meteor storms',
+  ionStorms: 'Ion storms',
+  visceroids: 'Visceroids',
+  tiberiumGrows: 'Tiberium grows',
+  tiberiumSpreads: 'Tiberium spreads',
+  initialVeteran: 'Veteran start',
+  harvesterImmune: 'Harvester immune',
+  fixedAlliance: 'Fixed alliance',
+  bridgeDestruction: 'Destroyable bridges',
+  fogOfWar: 'Fog of war',
+};
+export function featureLabel(key: string): string {
+  return MAP_FEATURE_LABELS[key] ?? key;
+}
+
+/**
+ * Fields a community member can propose a correction for (the "Correct data"
+ * dropdown). Kept small + identity-level for v1; extend as more becomes editable.
+ */
+export const CORRECTION_FIELDS = [
+  { value: 'author', label: 'Author / credit', help: 'Original author — and editor if it’s an edit, e.g. "Dctanxman (edited by Antares)".' },
+  { value: 'description', label: 'Description', help: 'The summary shown under the map title.' },
+  { value: 'type', label: 'Map type', help: 'e.g. Multiplayer, Co-op mission, Standard mission.' },
+] as const;
+export type CorrectionField = (typeof CORRECTION_FIELDS)[number]['value'];
+export const CORRECTION_FIELD_VALUES = CORRECTION_FIELDS.map((f) => f.value);
+export function correctionFieldLabel(value: string): string {
+  return CORRECTION_FIELDS.find((f) => f.value === value)?.label ?? value;
+}
+
+export const CORRECTION_STATUSES = ['pending', 'accepted', 'rejected'] as const;
+export type CorrectionStatus = (typeof CORRECTION_STATUSES)[number];
 
 export const ARCHIVE_FACETS: readonly ArchiveFacetDef[] = [
   {
@@ -371,6 +432,13 @@ export const ARCHIVE_FACETS: readonly ArchiveFacetDef[] = [
     kind: 'select',
     anyValue: 'any',
     options: TEAM_LAYOUTS.map((t) => ({ value: t, label: t === 'ffa' ? 'FFA' : t })),
+  },
+  {
+    key: 'gameMode',
+    label: 'Mode',
+    kind: 'select',
+    anyValue: 'any',
+    options: MAP_GAME_MODES.map((m) => ({ value: m, label: MAP_GAME_MODE_LABELS[m] })),
   },
   {
     key: 'quality',

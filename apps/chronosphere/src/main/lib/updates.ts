@@ -22,8 +22,8 @@ export function registerUpdaterEvents(broadcast: (status: UpdateStatus) => void)
   wired = true;
 
   autoUpdater.on('update-available', (info: { version: string }) => {
-    if (!manualCheck) return;
-    // Keep the gate open — autoDownload proceeds and 'update-downloaded' follows.
+    // Surface on BOTH a manual check and the silent startup auto-download, so the
+    // background download is visible and the 'downloaded' → Restart prompt follows.
     broadcast({ kind: 'available', version: info.version });
   });
   autoUpdater.on('update-not-available', (info: { version: string }) => {
@@ -32,7 +32,8 @@ export function registerUpdaterEvents(broadcast: (status: UpdateStatus) => void)
     broadcast({ kind: 'not-available', version: info.version });
   });
   autoUpdater.on('update-downloaded', (info: { version: string }) => {
-    if (!manualCheck) return;
+    // Always surface — the whole point is a "Restart now" prompt after the download,
+    // whether the check was manual or the automatic one on startup.
     manualCheck = false;
     broadcast({ kind: 'downloaded', version: info.version });
   });
@@ -59,4 +60,9 @@ export async function checkForUpdatesManually(
       broadcast({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
   }
+}
+
+/** The "Restart now" action: quit, install the staged update, and relaunch. */
+export function quitAndInstall(): void {
+  autoUpdater.quitAndInstall(false, true);
 }
