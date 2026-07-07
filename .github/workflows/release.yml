@@ -12,7 +12,57 @@ permissions:
   contents: write # create the GitHub Release
 
 jobs:
+  # Create the draft release ONCE, serially, before the parallel build matrix.
+  # GitHub allows multiple draft releases to share a tag, so if the three build
+  # legs each ran electron-builder's "find-or-create draft by tag", a start-up race
+  # could spawn duplicate drafts and split the artifacts across them. Pre-creating a
+  # single draft here means every leg only ever *finds and uploads into* it.
+  prepare:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # electron-builder keys the release off the PACKAGE version (it publishes into a
+      # release tagged `v${package.json.version}`), while this workflow keys off the pushed
+      # git tag. If they diverge, electron-builder would create a SECOND draft and split the
+      # artifacts. Fail fast so the two identifiers can never disagree.
+      - name: Assert tag matches package version
+        run: |
+          PKG=$(node -p "require('./apps/chronosphere/package.json').version")
+          if [ "${{ github.ref_name }}" != "v$PKG" ]; then
+            echo "::error::tag ${{ github.ref_name }} != v$PKG — bump apps/chronosphere/package.json to match the tag"
+            exit 1
+          fi
+
+      - name: Ensure a single draft release for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Create the draft ONCE, serially, before the parallel build matrix (GitHub allows
+          # multiple drafts per tag, so parallel find-or-create would spawn duplicates). It
+          # stays a draft — invisible to electron-updater and the box mirror — until the seal
+          # job publishes it once every artifact is uploaded.
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            # Re-run: only a still-DRAFT release is safe to reuse. Refuse to touch one that a
+            # previous run already published — the operator should cut a new version instead
+            # of mutating a live release in place (which would flash a broken feed to clients).
+            if [ "$(gh release view "${{ github.ref_name }}" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::${{ github.ref_name }} is already published — bump the version and tag a new release."
+              exit 1
+            fi
+            echo "Reusing existing draft ${{ github.ref_name }}."
+          else
+            gh release create "${{ github.ref_name }}" --draft \
+              --title "${{ github.ref_name }}" \
+              --notes "Automated Chronosphere release ${{ github.ref_name }}."
+          fi
+
   build:
+    needs: [prepare]
     strategy:
       fail-fast: false
       matrix:
@@ -65,11 +115,15 @@ jobs:
         # each matrix job builds its own platform and publishes into one release.
         run: npx --no-install electron-builder --publish always
 
-  # Seal the release: emit + upload manifest.json ONLY after all three build legs
-  # finished uploading their assets. Its presence is the authoritative "release is
-  # complete" signal that the-real-antares.com waits for before mirroring — so the
-  # site never serves a half-uploaded release. Uploads a public JSON describing an
-  # already-public release; needs only the ephemeral GITHUB_TOKEN, never touches the box.
+  # Seal + publish the release. The build legs publish their signed artifacts to a
+  # DRAFT GitHub release (build.publish.releaseType=draft), so it stays invisible to
+  # electron-updater AND the box mirror while assets upload — no client can hit a
+  # half-built release (the mid-build "latest-mac.yml 404" race). This job runs ONLY
+  # after all three legs succeed: it uploads manifest.json (the authoritative "release
+  # is complete" signal the-real-antares.com waits for) and then flips the draft to
+  # published in one atomic step. A failed build leaves the draft unpublished, so a
+  # partial release never reaches users. Needs only the ephemeral GITHUB_TOKEN; never
+  # touches the box.
   seal:
     needs: [build]
     if: startsWith(github.ref, 'refs/tags/')
@@ -81,7 +135,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Generate + upload sealed manifest.json
+      - name: Seal manifest, then publish the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -89,3 +143,7 @@ jobs:
           node apps/chronosphere/scripts/gen-release-manifest.mjs "${{ github.ref_name }}" > manifest.json
           cat manifest.json
           gh release upload "${{ github.ref_name }}" manifest.json --clobber
+          # Every artifact + the sealed manifest are now uploaded to the draft release.
+          # Flip it to published — the atomic "go live" that makes it visible to
+          # electron-updater and the box mirror at the same instant, with all files present.
+          gh release edit "${{ github.ref_name }}" --draft=false

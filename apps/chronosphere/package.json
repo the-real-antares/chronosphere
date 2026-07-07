@@ -109,7 +109,7 @@
         "provider": "github",
         "owner": "the-real-antares",
         "repo": "chronosphere",
-        "releaseType": "release"
+        "releaseType": "draft"
       }
     ]
   },

@@ -28,13 +28,26 @@ if (!tag) {
 const repo = process.env.GITHUB_REPOSITORY || 'the-real-antares/chronosphere';
 
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-const fetchRelease = () =>
-  JSON.parse(
-    execFileSync('gh', ['api', `repos/${repo}/releases/tags/${tag}`], {
+
+// Resolve the release by its numeric id — NOT via `GET /repos/:repo/releases/tags/:tag`.
+// That endpoint returns only PUBLISHED releases and 404s on a draft. The seal job runs
+// while the release is still a DRAFT (it is flipped to published immediately after this
+// script succeeds), so first ask `gh release view` (which can see drafts) for the id,
+// then read the full asset detail from `GET /releases/:id` (also works on drafts).
+const fetchRelease = () => {
+  const id = execFileSync(
+    'gh',
+    ['release', 'view', tag, '--repo', repo, '--json', 'databaseId', '--jq', '.databaseId'],
+    { encoding: 'utf8' },
+  ).trim();
+  if (!id) throw new Error(`no release found for tag ${tag} in ${repo}`);
+  return JSON.parse(
+    execFileSync('gh', ['api', `repos/${repo}/releases/${id}`], {
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,
     }),
   );
+};
 
 // GitHub computes asset `digest` values asynchronously after upload; the seal job can
 // run before they are populated. Poll (bounded) until every uploaded asset carries a
@@ -94,7 +107,10 @@ const files = assets
 const manifest = {
   version: tag.replace(/^v/, ''),
   tag,
-  publishedAt: rel.published_at,
+  // The release is still a DRAFT when it is sealed (the CI publishes it immediately
+  // after), so `published_at` is null here — fall back to the draft's creation time so
+  // the site never mirrors a null date.
+  publishedAt: rel.published_at || rel.created_at,
   assets: roles,
   files,
 };
