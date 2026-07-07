@@ -1,6 +1,6 @@
 {
   "name": "@antares/chronosphere",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "description": "Chronosphere \u2014 The Real Antares map manager. Desktop companion app.",
@@ -34,6 +34,14 @@
     ],
     "icon": "build/icon.png",
     "artifactName": "Chronosphere-${version}-${arch}.${ext}",
+    "protocols": [
+      {
+        "name": "Chronosphere",
+        "schemes": [
+          "chronosphere"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {

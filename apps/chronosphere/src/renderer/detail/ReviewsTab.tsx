@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { formatRelative, starString } from '../lib/format.ts';
 import { useStore } from '../state/store.tsx';
+import { CommentThread } from './CommentThread.tsx';
+import { ReportDialog } from './ReportDialog.tsx';
 
 /**
  * Expanded detail — Reviews tab (screens.md §5.3): LLM summary card, sort
@@ -120,13 +122,21 @@ export function ReviewsTab({ slug, mapName }: { slug: string | null; mapName: st
               </span>
             </div>
             <div className="review-text">{r.text}</div>
-            <button
-              type="button"
-              className={`helpful-btn${(r.markedHelpfulByMe ?? false) ? ' marked' : ''}`}
-              onClick={() => markHelpful(r.id)}
-            >
-              ▲ Helpful ({r.helpfulCount})
-            </button>
+            <div className="review-foot">
+              <button
+                type="button"
+                className={`helpful-btn${(r.markedHelpfulByMe ?? false) ? ' marked' : ''}`}
+                onClick={() => markHelpful(r.id)}
+              >
+                ▲ Helpful ({r.helpfulCount})
+              </button>
+              <ReportDialog
+                targetType="review"
+                targetId={r.id}
+                reportedByMe={r.reportedByMe ?? false}
+              />
+            </div>
+            <CommentThread reviewId={r.id} comments={r.comments ?? []} />
           </div>
         ))
       )}

@@ -1,17 +1,23 @@
-import type { TeamLayout } from '@antares/shared/taxonomy.ts';
+import type { ReportReason, TeamLayout } from '@antares/shared/taxonomy.ts';
 import type {
   ArchiveQuery,
+  BookmarkStatusDto,
+  CommentDto,
   ContributorDto,
+  FollowStatusDto,
   HashAnnotation,
   GroupVersionDto,
   MapCardDto,
   MapDetailDto,
+  MyBookmarksDto,
+  NotificationDto,
   Paged,
   ReviewDto,
   ReviewsBlockDto,
   SessionDto,
   StatsDto,
   SubmissionResultDto,
+  SubscriptionStatusDto,
 } from '@antares/shared/types.ts';
 
 /**
@@ -76,13 +82,33 @@ export interface ApiClientConfig {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
   formData?: FormData;
   auth?: boolean;
   /** Don't parse a JSON body (e.g. signout). */
   emptyOk?: boolean;
 }
+
+/** POST /api/v1/reports payload (REPORT_REASONS). */
+export interface ReportInput {
+  targetType: 'review' | 'comment';
+  targetId: string;
+  reason: ReportReason;
+  note?: string;
+}
+
+/** POST /api/v1/reports result. */
+export interface ReportResultDto {
+  ok: true;
+  /** DISTINCT reporters with an open report on this target. */
+  reportCount: number;
+  /** True when this report pushed the target over the auto-hide threshold. */
+  autoHidden: boolean;
+}
+
+/** GET /api/v1/notifications — a page of the inbox plus the unread badge count. */
+export type NotificationsPageDto = Paged<NotificationDto> & { unread: number };
 
 export function base64ToBytes(base64: string): Uint8Array {
   const bin = atob(base64);
@@ -176,9 +202,16 @@ export function createApiClient(config: ApiClientConfig) {
       if (query.health && query.health !== 'all') params.set('health', query.health);
       if (query.team && query.team !== 'any') params.set('team', query.team);
       if (query.sort) params.set('sort', query.sort);
+      if (query.dir) params.set('dir', query.dir);
+      if (query.quality) params.set('quality', query.quality);
+      // Multi-tag OR — the backend accepts a comma-joined `tags` param.
+      if (query.tags && query.tags.length > 0) params.set('tags', query.tags.join(','));
+      if (query.bookmarked) params.set('bookmarked', query.bookmarked);
       params.set('page', String(query.page ?? 1));
       params.set('perPage', String(query.perPage ?? ARCHIVE_PER_PAGE));
-      return request<Paged<MapCardDto>>(`/api/v1/maps?${params.toString()}`);
+      // Auth flows the Bearer when present so `bookmarked=me` can resolve the
+      // viewer; harmless (and header-free) when signed out.
+      return request<Paged<MapCardDto>>(`/api/v1/maps?${params.toString()}`, { auth: true });
     },
 
     getMapDetail(slug: string): Promise<ApiResult<MapDetailDto>> {
@@ -218,6 +251,99 @@ export function createApiClient(config: ApiClientConfig) {
         method: 'POST',
         auth: true,
         emptyOk: true,
+      });
+    },
+
+    // --- bookmarks / watch / follow --------------------------------------------
+
+    /** Add (on) / remove (off) a bookmark on a map → {bookmarked, bookmarkCount}. */
+    bookmark(slug: string, on: boolean): Promise<ApiResult<BookmarkStatusDto>> {
+      return request<BookmarkStatusDto>(`/api/v1/maps/${encodeURIComponent(slug)}/bookmark`, {
+        method: on ? 'POST' : 'DELETE',
+        auth: true,
+      });
+    },
+
+    /** The authed viewer's bookmarked identity ids + slugs (fills the ★ stars). */
+    getMyBookmarks(): Promise<ApiResult<MyBookmarksDto>> {
+      return request<MyBookmarksDto>('/api/v1/me/bookmarks', { auth: true });
+    },
+
+    /** Subscribe (on) / unsubscribe (off) to a map's activity → {subscribed, muted}. */
+    watch(slug: string, on: boolean): Promise<ApiResult<SubscriptionStatusDto>> {
+      return request<SubscriptionStatusDto>(`/api/v1/maps/${encodeURIComponent(slug)}/watch`, {
+        method: on ? 'POST' : 'DELETE',
+        auth: true,
+      });
+    },
+
+    /** Mute (muted) / unmute a watched map without unsubscribing → {subscribed, muted}. */
+    setMuted(slug: string, muted: boolean): Promise<ApiResult<SubscriptionStatusDto>> {
+      return request<SubscriptionStatusDto>(
+        `/api/v1/maps/${encodeURIComponent(slug)}/watch?muted=${muted ? 'true' : 'false'}`,
+        { method: 'POST', auth: true },
+      );
+    },
+
+    /** Follow (on) / unfollow (off) a contributor → {following, followerCount}. */
+    follow(handle: string, on: boolean): Promise<ApiResult<FollowStatusDto>> {
+      return request<FollowStatusDto>(`/api/v1/users/${encodeURIComponent(handle)}/follow`, {
+        method: on ? 'POST' : 'DELETE',
+        auth: true,
+      });
+    },
+
+    // --- comments --------------------------------------------------------------
+
+    /** Post a reply to a review → the created (auto-published) comment. */
+    addComment(reviewId: string, text: string): Promise<ApiResult<CommentDto>> {
+      return request<CommentDto>(`/api/v1/reviews/${encodeURIComponent(reviewId)}/comments`, {
+        method: 'POST',
+        body: { text },
+        auth: true,
+      });
+    },
+
+    /** Soft-remove a comment (author or moderator only). */
+    deleteComment(id: string): Promise<ApiResult<{ ok: true }>> {
+      return request<{ ok: true }>(`/api/v1/comments/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        auth: true,
+      });
+    },
+
+    // --- reports ---------------------------------------------------------------
+
+    /** Report a review or comment (REPORT_REASONS); dedupes per reporter. */
+    report(input: ReportInput): Promise<ApiResult<ReportResultDto>> {
+      return request<ReportResultDto>('/api/v1/reports', {
+        method: 'POST',
+        body: input,
+        auth: true,
+      });
+    },
+
+    // --- notifications ---------------------------------------------------------
+
+    /** A page of the viewer's inbox (newest-first) plus the unread badge count. */
+    getNotifications(page?: number): Promise<ApiResult<NotificationsPageDto>> {
+      const qs = page !== undefined ? `?page=${page}` : '';
+      return request<NotificationsPageDto>(`/api/v1/notifications${qs}`, { auth: true });
+    },
+
+    /** The cheap bell-badge poll — just the unread count. */
+    getUnreadCount(): Promise<ApiResult<{ unread: number }>> {
+      return request<{ unread: number }>('/api/v1/notifications/unread', { auth: true });
+    },
+
+    /** Mark inbox rows read: all of them, or a specific set of ids. */
+    markNotificationsRead(
+      which: { all: true } | { ids: string[] },
+    ): Promise<ApiResult<{ updated: number; unread: number }>> {
+      return request<{ updated: number; unread: number }>('/api/v1/notifications/read', {
+        method: 'POST',
+        body: which,
+        auth: true,
       });
     },
 

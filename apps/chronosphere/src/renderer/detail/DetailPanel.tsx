@@ -16,6 +16,7 @@ import { archiveInstallState } from '../lib/reconcile.ts';
 import { resolveAssetUrl } from '../lib/url.ts';
 import { contributeCandidates, findDiskRow, shouldNudge, useStore } from '../state/store.tsx';
 import { ActionButton, AuthorChip, FacetChips, PreviewThumb, type ActionDescriptor } from './bits.tsx';
+import { SocialActions } from './SocialActions.tsx';
 import {
   diskUnitOf,
   displayFacts,
@@ -365,6 +366,12 @@ export function DetailPanel() {
       ? `"${state.detail.reviews.reviews[0]?.text ?? ''}"`
       : 'No reviews yet.';
 
+  // Social row inputs: an archive-identity slug (bookmark/watch/share) + the
+  // verified authorId (follow). Disk files with no archive match get no row.
+  const socialSlug = facts?.slug ?? null;
+  const socialAuthorId =
+    det?.authorId ?? (target?.kind === 'archive' ? target.card.authorId : null);
+
   // One-line health summary — the chip's tooltip (first finding, else the verdict headline).
   const healthReport =
     target === null ? null : target.kind === 'disk' ? target.unit.health : (det?.health ?? null);
@@ -516,6 +523,7 @@ export function DetailPanel() {
                         </span>
                       ) : null}
                     </div>
+                    {det?.description ? <p className="detail-description">{det.description}</p> : null}
                     <div className="detail-quote">{quote}</div>
                     {nudgeRow !== null ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
@@ -542,6 +550,14 @@ export function DetailPanel() {
                           ✕
                         </button>
                       </div>
+                    ) : null}
+                    {socialSlug !== null ? (
+                      <SocialActions
+                        slug={socialSlug}
+                        authorId={socialAuthorId}
+                        author={facts.author}
+                        apiBase={apiBase}
+                      />
                     ) : null}
                   </div>
                   <div className="detail-actions">

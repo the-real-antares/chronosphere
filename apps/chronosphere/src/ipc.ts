@@ -189,6 +189,10 @@ export const IPC = {
   updatesCheck: 'updates:check',
   /** main → renderer event. */
   updatesStatus: 'updates:status',
+  /** main → renderer event: a chronosphere://map/<slug> deep link was opened. */
+  deepLink: 'deep-link:navigate',
+  /** renderer → main: consume a deep link captured before the renderer was ready. */
+  deepLinkConsumePending: 'deep-link:consume-pending',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -250,4 +254,12 @@ export interface ChronoApi {
     /** Subscribe to update-check outcomes (available / not-available / downloaded / error / dev). */
     onStatus(cb: (status: UpdateStatus) => void): Unsubscribe;
   };
+  /**
+   * Deep-link plumbing (chronosphere://map/<slug>). `onDeepLink` fires while the
+   * app is running (second-instance / macOS open-url); `consumePendingDeepLink`
+   * returns (and clears) a slug captured during a cold start before the renderer
+   * mounted, so the very first launch-by-link isn't lost to a subscribe race.
+   */
+  onDeepLink(cb: (slug: string) => void): Unsubscribe;
+  consumePendingDeepLink(): Promise<string | null>;
 }

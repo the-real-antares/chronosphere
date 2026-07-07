@@ -1,5 +1,6 @@
 import { folderTail } from '../lib/format.ts';
 import { useAppState, useActions } from '../state/store.tsx';
+import { NotificationBell } from './NotificationBell.tsx';
 
 /**
  * Top bar (screens.md §2.1): brand cluster · sync spinner slot · game-folder
@@ -53,6 +54,7 @@ export function TitleBar() {
         <span className="conn-dot" aria-hidden="true" />
         {online ? 'Online' : 'Offline'}
       </button>
+      <NotificationBell />
       <button
         type="button"
         className="icon-btn"

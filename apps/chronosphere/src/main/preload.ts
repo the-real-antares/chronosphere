@@ -82,6 +82,9 @@ const chrono: ChronoApi = {
     check: () => ipcRenderer.invoke(IPC.updatesCheck) as Promise<void>,
     onStatus: (cb) => subscribe<UpdateStatus>(IPC.updatesStatus, cb),
   },
+  onDeepLink: (cb) => subscribe<string>(IPC.deepLink, cb),
+  consumePendingDeepLink: () =>
+    ipcRenderer.invoke(IPC.deepLinkConsumePending) as Promise<string | null>,
 };
 
 contextBridge.exposeInMainWorld('chrono', chrono);

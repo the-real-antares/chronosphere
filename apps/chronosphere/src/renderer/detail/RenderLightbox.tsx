@@ -25,6 +25,10 @@ const WHEEL_STEP = 1.15;
 const BUTTON_STEP = 1.4;
 // A pointerup that moved less than this counts as a click (→ dismiss), not a pan.
 const CLICK_SLOP = 5;
+/** Double-tap toggles between 1× and this, anchored at the tap point. */
+const DOUBLE_TAP_ZOOM = 2.5;
+/** A second touch-tap within this window (ms) counts as a double-tap. */
+const DOUBLE_TAP_MS = 300;
 
 function clampZoom(z: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
@@ -50,9 +54,15 @@ export function RenderLightbox({
   onClose: () => void;
 }) {
   const { media } = useViewerMedia({ renderUrl, cacheKey, path: null });
-  const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
+  const [view, setViewState] = useState<View>({ zoom: 1, x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  // Synchronous mirror of `view` so rapid wheel/pinch events read fresh values.
+  const viewRef = useRef<View>({ zoom: 1, x: 0, y: 0 });
+  const commit = (v: View): void => {
+    viewRef.current = v;
+    setViewState(v);
+  };
   const drag = useRef<{
     pointerId: number;
     startX: number;
@@ -61,6 +71,14 @@ export function RenderLightbox({
     baseY: number;
     moved: boolean;
   } | null>(null);
+  // Active pointers by id — two of them means a pinch is in progress.
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  // Pinch baseline captured on the 1→2 transition (start distance + zoom).
+  const pinch = useRef<{ d0: number; z0: number } | null>(null);
+  // Last touch-tap time + a deferred-dismiss timer, so a single tap can still
+  // close while a double-tap zooms instead.
+  const lastTap = useRef(0);
+  const dismissTimer = useRef<number | null>(null);
 
   // Escape closes — capture phase so it wins over the global keyboard handler,
   // which would otherwise dock the expanded detail (or clear a selection) first.
@@ -76,62 +94,147 @@ export function RenderLightbox({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [onClose]);
 
-  const reset = (): void => setView({ zoom: 1, x: 0, y: 0 });
+  // Clear any pending deferred-dismiss timer if we unmount first.
+  useEffect(
+    () => () => {
+      if (dismissTimer.current !== null) window.clearTimeout(dismissTimer.current);
+    },
+    [],
+  );
+
+  const reset = (): void => commit({ zoom: 1, x: 0, y: 0 });
 
   // +/- buttons zoom toward the center (pan scales with the zoom ratio).
-  const stepZoom = (factor: number): void =>
-    setView((v) => {
-      const zoom = clampZoom(v.zoom * factor);
-      const ratio = zoom / v.zoom;
-      return { zoom, x: v.x * ratio, y: v.y * ratio };
-    });
+  const stepZoom = (factor: number): void => {
+    const v = viewRef.current;
+    const zoom = clampZoom(v.zoom * factor);
+    const ratio = zoom / v.zoom;
+    commit({ zoom, x: v.x * ratio, y: v.y * ratio });
+  };
+
+  // Anchored zoom: move to an absolute level while keeping the content under
+  // (clientX, clientY) fixed. Shared by the wheel and the pinch handler.
+  const zoomToPoint = (targetZoom: number, clientX: number, clientY: number): void => {
+    const el = viewportRef.current;
+    if (el === null) return;
+    const rect = el.getBoundingClientRect();
+    const cx = clientX - rect.left - rect.width / 2;
+    const cy = clientY - rect.top - rect.height / 2;
+    const v = viewRef.current;
+    const zoom = clampZoom(targetZoom);
+    const ratio = zoom / v.zoom;
+    commit({ zoom, x: cx - ratio * (cx - v.x), y: cy - ratio * (cy - v.y) });
+  };
 
   // Wheel zooms toward the cursor: keep the point under the pointer fixed.
   const onWheel = (e: ReactWheelEvent<HTMLDivElement>): void => {
     e.preventDefault();
-    const el = viewportRef.current;
-    if (el === null) return;
-    const rect = el.getBoundingClientRect();
-    const cx = e.clientX - rect.left - rect.width / 2;
-    const cy = e.clientY - rect.top - rect.height / 2;
     const factor = e.deltaY < 0 ? WHEEL_STEP : 1 / WHEEL_STEP;
-    setView((v) => {
-      const zoom = clampZoom(v.zoom * factor);
-      const ratio = zoom / v.zoom;
-      return { zoom, x: cx - ratio * (cx - v.x), y: cy - ratio * (cy - v.y) };
-    });
+    zoomToPoint(viewRef.current.zoom * factor, e.clientX, e.clientY);
+  };
+
+  // Capture the pinch baseline (finger spread + zoom) from the two live pointers.
+  const beginPinch = (): void => {
+    const pts = [...pointers.current.values()];
+    const a = pts[0];
+    const b = pts[1];
+    if (!a || !b) return;
+    pinch.current = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: viewRef.current.zoom };
   };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // Second finger down: hand off from pan to pinch.
+    if (pointers.current.size >= 2) {
+      drag.current = null;
+      beginPinch();
+      setDragging(true);
+      return;
+    }
     drag.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      baseX: view.x,
-      baseY: view.y,
+      baseX: viewRef.current.x,
+      baseY: viewRef.current.y,
       moved: false,
     };
     setDragging(true);
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    const p = pointers.current.get(e.pointerId);
+    if (p) {
+      p.x = e.clientX;
+      p.y = e.clientY;
+    }
+    // Two fingers down: scale off the pinch baseline, anchored at the midpoint.
+    if (pinch.current && pointers.current.size >= 2) {
+      const pts = [...pointers.current.values()];
+      const a = pts[0];
+      const b = pts[1];
+      if (a && b) {
+        const d1 = Math.hypot(a.x - b.x, a.y - b.y);
+        zoomToPoint(pinch.current.z0 * (d1 / pinch.current.d0), (a.x + b.x) / 2, (a.y + b.y) / 2);
+      }
+      return;
+    }
     const d = drag.current;
     if (d === null || d.pointerId !== e.pointerId) return;
     const dx = e.clientX - d.startX;
     const dy = e.clientY - d.startY;
     if (!d.moved && Math.abs(dx) + Math.abs(dy) > CLICK_SLOP) d.moved = true;
-    setView((v) => ({ ...v, x: d.baseX + dx, y: d.baseY + dy }));
+    commit({ zoom: viewRef.current.zoom, x: d.baseX + dx, y: d.baseY + dy });
   };
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
-    const d = drag.current;
-    if (d === null || d.pointerId !== e.pointerId) return;
+    if (!pointers.current.has(e.pointerId)) return;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    const wasClick = !d.moved;
+    const released = drag.current;
+    pointers.current.delete(e.pointerId);
+    // Still ≥2 down (a third finger lifted): re-baseline the ongoing pinch.
+    if (pointers.current.size >= 2) {
+      beginPinch();
+      return;
+    }
+    // 2→1: re-seat the pan baseline onto the surviving finger so it doesn't jump.
+    if (pointers.current.size === 1) {
+      pinch.current = null;
+      const first = [...pointers.current.entries()][0];
+      if (first) {
+        const [id, pt] = first;
+        drag.current = { pointerId: id, startX: pt.x, startY: pt.y, baseX: viewRef.current.x, baseY: viewRef.current.y, moved: true };
+        setDragging(true);
+      }
+      return;
+    }
+    // Fully lifted.
+    pinch.current = null;
     drag.current = null;
     setDragging(false);
-    // A click that didn't pan the image dismisses (backdrop-close).
-    if (wasClick && e.type === 'pointerup') onClose();
+    if (e.type !== 'pointerup' || released === null || released.pointerId !== e.pointerId || released.moved) return;
+    // A clean, non-drag click/tap. Mouse dismisses immediately (backdrop-close).
+    if (e.pointerType === 'mouse') {
+      onClose();
+      return;
+    }
+    // Touch: a second tap within the window zooms (anchored at the tap point);
+    // otherwise defer the dismiss so a would-be double-tap isn't pre-empted.
+    const now = e.timeStamp;
+    if (now - lastTap.current < DOUBLE_TAP_MS) {
+      lastTap.current = 0;
+      if (dismissTimer.current !== null) {
+        window.clearTimeout(dismissTimer.current);
+        dismissTimer.current = null;
+      }
+      zoomToPoint(viewRef.current.zoom > 1.01 ? ZOOM_MIN : DOUBLE_TAP_ZOOM, e.clientX, e.clientY);
+    } else {
+      lastTap.current = now;
+      dismissTimer.current = window.setTimeout(() => {
+        dismissTimer.current = null;
+        onClose();
+      }, DOUBLE_TAP_MS);
+    }
   };
 
   const stop = (e: ReactPointerEvent<HTMLElement>): void => e.stopPropagation();

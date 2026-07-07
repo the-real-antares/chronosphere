@@ -1,13 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AI_TAGS,
+  AI_TAG_LABELS,
+  aiTagLabel,
+  ARCHIVE_SORT_FIELDS,
+  HEALTH_LABELS,
+  HEALTH_VERDICTS,
   MAP_TYPES,
   MAP_TYPE_LABELS,
   MIN_PLAYER_BUCKETS,
+  QUALITY_BANDS,
   SIZE_CLASSES,
   TEAM_LAYOUTS,
   THEATERS,
-  type ArchiveSort,
+  type ArchiveSortFieldKey,
+  type HealthVerdict,
   type MapType,
+  type QualityBand,
   type SizeClass,
   type TeamLayout,
   type Theater,
@@ -31,10 +40,13 @@ import { ArchiveThumb, SkeletonRows } from './visuals.tsx';
 
 /**
  * The Archive pane (screens.md §3): header with the live API total, search +
- * five facet selects + sort (shared taxonomy vocabulary), the paged row list
- * (infinite scroll + "Showing N of M · Load more"), install-state markers
- * derived from disk hashes, per-row ⟳ chronoshift, drag-to-install source
- * rows (reconciliation #3), connection-lost / empty / skeleton states.
+ * the shared-taxonomy facet selects (type, players, theater, team, size,
+ * health, quality) + a multi-select tag facet + a "My bookmarks" filter + sort
+ * (rendered from ARCHIVE_SORT_FIELDS) with an asc/desc direction toggle, the
+ * paged row list (infinite scroll + "Showing N of M · Load more"), install-state
+ * markers derived from disk hashes, a per-row ★ bookmark toggle + ⟳ chronoshift,
+ * drag-to-install source rows (reconciliation #3), connection-lost / empty /
+ * skeleton states.
  */
 
 const SIZE_WORDS: Record<SizeClass, string> = { small: 'Small', medium: 'Medium', large: 'Large' };
@@ -59,6 +71,54 @@ function scorePillStyle(s: number) {
     background: bg,
     whiteSpace: 'nowrap' as const,
     alignSelf: 'center' as const,
+  };
+}
+
+/** Small square asc/desc direction toggle, sized to sit beside the sort select. */
+const dirToggleStyle: CSSProperties = {
+  appearance: 'none',
+  background: 'var(--well)',
+  border: '1px solid var(--line)',
+  borderRadius: 2,
+  color: 'var(--text-hi)',
+  fontFamily: 'inherit',
+  fontSize: 13,
+  fontWeight: 800,
+  width: 30,
+  padding: '6px 0',
+  cursor: 'pointer',
+  lineHeight: 1,
+};
+
+/** "My bookmarks" filter pill — gold-tinted when active. */
+function bookmarkFilterStyle(on: boolean): CSSProperties {
+  return {
+    appearance: 'none',
+    background: on ? 'rgba(240, 182, 79, 0.16)' : 'var(--well)',
+    border: `1px solid ${on ? 'rgba(240, 182, 79, 0.5)' : 'var(--line)'}`,
+    borderRadius: 2,
+    color: on ? 'var(--gold)' : 'var(--text-mid)',
+    fontFamily: 'inherit',
+    fontSize: 11.5,
+    fontWeight: 700,
+    padding: '6px 10px',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
+}
+
+/** Per-row ★ bookmark toggle — filled gold when bookmarked, dim ☆ otherwise. */
+function bookmarkStarStyle(on: boolean): CSSProperties {
+  return {
+    background: 'transparent',
+    border: 'none',
+    padding: 2,
+    cursor: 'pointer',
+    fontSize: 15,
+    lineHeight: 1,
+    color: on ? 'var(--gold)' : 'var(--text-low)',
+    alignSelf: 'center',
+    flex: '0 0 auto',
   };
 }
 
@@ -256,22 +316,122 @@ export function ArchivePane() {
             </select>
             <span className="select-chevron">⌄</span>
           </label>
+          <label className="select-wrap">
+            <select
+              className="select"
+              aria-label="Health"
+              value={archive.filters.health}
+              onChange={(e) =>
+                actions.setArchiveFilters({ health: e.target.value as HealthVerdict | 'all' })
+              }
+            >
+              <option value="all">All health</option>
+              {HEALTH_VERDICTS.map((h) => (
+                <option key={h} value={h}>
+                  {HEALTH_LABELS[h]}
+                </option>
+              ))}
+            </select>
+            <span className="select-chevron">⌄</span>
+          </label>
+          <label className="select-wrap">
+            <select
+              className="select"
+              aria-label="Quality"
+              value={archive.filters.quality}
+              onChange={(e) =>
+                actions.setArchiveFilters({ quality: e.target.value as QualityBand | 'any' })
+              }
+            >
+              <option value="any">Any quality</option>
+              {QUALITY_BANDS.map((band) => (
+                <option key={band.value} value={band.value}>
+                  {band.label}
+                </option>
+              ))}
+            </select>
+            <span className="select-chevron">⌄</span>
+          </label>
           <div className="filter-row-spacer" />
+          <button
+            type="button"
+            aria-label="My bookmarks"
+            aria-pressed={archive.filters.bookmarked}
+            title="Show only maps you’ve bookmarked"
+            onClick={() => actions.toggleMyBookmarks()}
+            style={bookmarkFilterStyle(archive.filters.bookmarked)}
+          >
+            {archive.filters.bookmarked ? '★' : '☆'} My bookmarks
+          </button>
           <span className="sort-label">Sort</span>
           <label className="select-wrap">
             <select
               className="select select-wide"
               aria-label="Sort"
               value={archive.filters.sort}
-              onChange={(e) => actions.setArchiveFilters({ sort: e.target.value as ArchiveSort })}
+              onChange={(e) =>
+                actions.setArchiveSort(e.target.value as ArchiveSortFieldKey)
+              }
             >
-              <option value="downloads">Most downloaded</option>
-              <option value="newest">Newest</option>
-              <option value="rating">Highest rated</option>
-              <option value="quality">Highest quality</option>
+              {ARCHIVE_SORT_FIELDS.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
             </select>
             <span className="select-chevron">⌄</span>
           </label>
+          <button
+            type="button"
+            aria-label={`Sort direction: ${archive.filters.dir === 'desc' ? 'descending' : 'ascending'}`}
+            title={archive.filters.dir === 'desc' ? 'Descending — click for ascending' : 'Ascending — click for descending'}
+            onClick={() => actions.toggleArchiveDir()}
+            style={dirToggleStyle}
+          >
+            {archive.filters.dir === 'desc' ? '↓' : '↑'}
+          </button>
+        </div>
+        <div className="filter-row">
+          <label className="select-wrap">
+            <select
+              className="select"
+              aria-label="Add tag filter"
+              value=""
+              onChange={(e) => {
+                if (e.target.value !== '') actions.toggleArchiveTag(e.target.value);
+              }}
+            >
+              <option value="">Tags…</option>
+              {AI_TAGS.filter((t) => !archive.filters.tags.includes(t)).map((t) => (
+                <option key={t} value={t}>
+                  {AI_TAG_LABELS[t]}
+                </option>
+              ))}
+            </select>
+            <span className="select-chevron">⌄</span>
+          </label>
+          {archive.filters.tags.map((t) => (
+            <button
+              key={t}
+              type="button"
+              className="chip chip-facet"
+              title="Remove tag"
+              onClick={() => actions.toggleArchiveTag(t)}
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              {aiTagLabel(t)} ✕
+            </button>
+          ))}
+          {archive.filters.tags.length > 0 ? (
+            <button
+              type="button"
+              className="link"
+              onClick={() => actions.setArchiveFilters({ tags: [] })}
+              style={{ fontSize: 11 }}
+            >
+              Clear tags
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -339,6 +499,24 @@ export function ArchivePane() {
                   <div className="row-meta">{archiveMetaLine(card)}</div>
                 </div>
                 <div className="row-right">
+                  {(() => {
+                    const isBookmarked = state.bookmarks.slugs.has(card.slug);
+                    return (
+                      <button
+                        type="button"
+                        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                        aria-pressed={isBookmarked}
+                        title={isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void actions.toggleBookmark(card.slug);
+                        }}
+                        style={bookmarkStarStyle(isBookmarked)}
+                      >
+                        {isBookmarked ? '★' : '☆'}
+                      </button>
+                    );
+                  })()}
                   {typeof card.lintScore === 'number' ? (
                     <span className="row-score" title={`Quality ${card.lintScore.toFixed(1)}/10`} style={scorePillStyle(card.lintScore)}>
                       {card.lintScore.toFixed(1)}

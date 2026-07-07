@@ -1,11 +1,18 @@
 import type {
   ArchiveSort,
+  ArchiveSortFieldKey,
   Confidence,
+  ContentStatus,
   HealthVerdict,
   MapType,
   ModerationStatus,
+  NotificationType,
+  QualityBand,
+  ReportReason,
+  ReportTargetType,
   ReviewStatus,
   SizeClass,
+  SortDir,
   TeamLayout,
   Theater,
 } from './taxonomy.ts';
@@ -68,6 +75,12 @@ export interface MapCardDto {
   downloads: number;
   rating: number | null; // identity-level mean of approved reviews
   reviewCount: number;
+  /**
+   * Count of authed bookmarks on this identity (drives the `favorited` sort and
+   * the card's bookmark badge). Impersonal — never per-viewer. Optional so the
+   * Chronosphere desktop stays source-compatible until it adopts the field.
+   */
+  bookmarkCount?: number;
   fileSizeKb: number; // canonical version
   dateAdded: string; // canonical version
   healthVerdict: HealthVerdict | null; // canonical version
@@ -114,6 +127,18 @@ export interface MapDetailDto extends MapCardDto {
   canonicalVersionId: string;
 }
 
+/** A flat, one-level reply to a review. */
+export interface CommentDto {
+  id: string;
+  reviewId: string;
+  discordHandle: string;
+  text: string;
+  status: ContentStatus;
+  createdAt: string;
+  /** True when the viewer may delete this comment (its author, or a moderator). */
+  canDelete?: boolean;
+}
+
 export interface ReviewDto {
   id: string;
   identityId: string;
@@ -127,7 +152,19 @@ export interface ReviewDto {
   status: ReviewStatus;
   helpfulCount: number;
   markedHelpfulByMe?: boolean;
+  /** Flat replies to this review (published only for the public; author sees own). Optional until the client adopts comments. */
+  comments?: CommentDto[];
+  /** True when the authed viewer has an open report on this review. */
+  reportedByMe?: boolean;
   createdAt: string;
+}
+
+/** Body for POST /api/v1/reports — report a review or comment. */
+export interface ReportInput {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  note?: string;
 }
 
 export interface ReviewsBlockDto {
@@ -137,6 +174,18 @@ export interface ReviewsBlockDto {
   reviews: ReviewDto[];
 }
 
+/** Result of a bookmark add/remove (POST/DELETE /api/v1/maps/:slug/bookmark). */
+export interface BookmarkStatusDto {
+  bookmarked: boolean;
+  bookmarkCount: number;
+}
+
+/** The authed viewer's bookmarks (GET /api/v1/me/bookmarks) — for filled/empty stars. */
+export interface MyBookmarksDto {
+  identityIds: string[];
+  slugs: string[];
+}
+
 export interface ContributorDto {
   discordHandle: string;
   since: string; // ISO month
@@ -144,6 +193,38 @@ export interface ContributorDto {
   reviewCount: number;
   confirmedTags: number;
   badges: string[];
+  /** Denormalized social counts (phase-3). Optional so older clients stay source-compatible. */
+  followerCount?: number;
+  followingCount?: number;
+}
+
+/**
+ * One in-app notification (phase-3). `type` picks the copy/icon; `actorHandle`
+ * is who caused it; `identitySlug`/`reviewId` deep-link the client to the map or
+ * review. `title` is always present; `body` is an optional second line.
+ */
+export interface NotificationDto {
+  id: string;
+  type: NotificationType;
+  actorHandle?: string;
+  identitySlug?: string;
+  reviewId?: string;
+  title: string;
+  body?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+/** Result of a follow toggle / status probe (POST/DELETE|GET /api/v1/users/:handle/follow). */
+export interface FollowStatusDto {
+  following: boolean;
+  followerCount: number;
+}
+
+/** Result of a subscribe/watch toggle, mute toggle, or status probe on a map. */
+export interface SubscriptionStatusDto {
+  subscribed: boolean;
+  muted: boolean;
 }
 
 export interface StatsDto {
@@ -168,9 +249,21 @@ export interface ArchiveQuery {
   size?: SizeClass | 'any';
   health?: HealthVerdict | 'all';
   team?: TeamLayout | 'any';
-  /** Single LLM enrichment tag (AI_TAGS) the map must carry. */
+  /** Single LLM enrichment tag (AI_TAGS) the map must carry (back-compat). */
   tag?: string;
-  sort?: ArchiveSort;
+  /** Multiple enrichment tags — a map matches if it carries ANY of them (OR). */
+  tags?: string[];
+  /** Coarse lint-score band (QUALITY_BANDS); unlinted maps never match. */
+  quality?: QualityBand;
+  /** `'me'` restricts to the authed viewer's bookmarked maps (no-op when unauth). */
+  bookmarked?: 'me';
+  /**
+   * Sort field key. A deprecated legacy token ({@link ArchiveSort}) is still
+   * accepted during the migration — the backend resolves it via
+   * `resolveLegacySort` — so clients mid-migration (Chronosphere) keep working.
+   */
+  sort?: ArchiveSortFieldKey | ArchiveSort;
+  dir?: SortDir;
   page?: number; // 1-based
   perPage?: number; // default 12 (web), app may ask more
 }

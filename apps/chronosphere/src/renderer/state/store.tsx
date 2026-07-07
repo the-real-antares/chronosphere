@@ -8,23 +8,35 @@ import {
   type ReactNode,
 } from 'react';
 import type {
-  ArchiveSort,
+  ArchiveSortFieldKey,
   HealthVerdict,
   MapType,
+  QualityBand,
   SizeClass,
+  SortDir,
   TeamLayout,
   Theater,
 } from '@antares/shared/taxonomy.ts';
-import { HEALTH_GLYPHS } from '@antares/shared/taxonomy.ts';
+import { archiveSortField, HEALTH_GLYPHS } from '@antares/shared/taxonomy.ts';
 import type {
   ArchiveQuery,
+  CommentDto,
   HashAnnotation,
   MapCardDto,
   MapDetailDto,
+  NotificationDto,
+  ReviewDto,
   ReviewsBlockDto,
 } from '@antares/shared/types.ts';
 import type { ChronoSettings, QuarantineSummary, ScannedFile, UpdateStatus } from '../../ipc.ts';
-import { createApiClient, type ApiClient, type AuthMode } from '../api/client.ts';
+import {
+  createApiClient,
+  type ApiClient,
+  type ApiResult,
+  type AuthMode,
+  type ReportInput,
+  type ReportResultDto,
+} from '../api/client.ts';
 import { base64ToBytes } from '../api/client.ts';
 import { healthWord } from '../lib/format.ts';
 import { buildDiskRows, buildTidyProposals, diskHashSet } from '../lib/reconcile.ts';
@@ -54,7 +66,18 @@ export interface ArchiveFilters {
   theater: Theater | 'all';
   team: TeamLayout | 'any';
   size: SizeClass | 'any';
-  sort: ArchiveSort;
+  /** Health verdict facet (audit finding — desktop was missing this). */
+  health: HealthVerdict | 'all';
+  /** Coarse lint-score band (QUALITY_BANDS); 'any' clears it. */
+  quality: QualityBand | 'any';
+  /** Enrichment tags — a map matches if it carries ANY (OR). */
+  tags: string[];
+  /** 'My bookmarks' filter → bookmarked=me (no-op / prompt when signed out). */
+  bookmarked: boolean;
+  /** Sort field key from the shared ARCHIVE_SORT_FIELDS descriptor. */
+  sort: ArchiveSortFieldKey;
+  /** Sort direction; seeded from the field's defaultDir, toggleable. */
+  dir: SortDir;
 }
 
 export const DEFAULT_ARCHIVE_FILTERS: ArchiveFilters = {
@@ -64,7 +87,12 @@ export const DEFAULT_ARCHIVE_FILTERS: ArchiveFilters = {
   theater: 'all',
   team: 'any',
   size: 'any',
+  health: 'all',
+  quality: 'any',
+  tags: [],
+  bookmarked: false,
   sort: 'downloads',
+  dir: 'desc',
 };
 
 export interface ArchiveState {
@@ -77,6 +105,49 @@ export interface ArchiveState {
   /** Connection-lost / server-error state for the pane (null = fine). */
   error: string | null;
   filters: ArchiveFilters;
+}
+
+/** The authed viewer's bookmarked map slugs — hydrated once, drives the ★ stars. */
+export interface BookmarksState {
+  slugs: ReadonlySet<string>;
+  hydrated: boolean;
+}
+
+/** Per-map watch state, learned from a toggle (no GET-status endpoint exists). */
+export interface WatchState {
+  subscribed: boolean;
+  muted: boolean;
+}
+
+/** Per-author follow state, learned from a toggle; count is null until known. */
+export interface FollowState {
+  following: boolean;
+  followerCount: number | null;
+}
+
+/**
+ * Optimistic social state for the detail panel's Watch / Follow toggles. The
+ * backend exposes no GET-status route (the web resolves it server-side at SSR),
+ * so the desktop learns each target's state from its first toggle and reconciles
+ * against the POST/DELETE response. Absent key → treat as not-subscribed /
+ * not-following (and the UI additionally gates on sign-in).
+ */
+export interface SocialState {
+  /** Keyed by map slug. */
+  watch: Record<string, WatchState>;
+  /** Keyed by verified authorId. */
+  follow: Record<string, FollowState>;
+}
+
+/** In-app notification center (the bell in the title bar). */
+export interface NotificationsState {
+  unread: number;
+  open: boolean;
+  /** null → not yet loaded this session. */
+  items: NotificationDto[] | null;
+  loading: boolean;
+  page: number;
+  total: number;
 }
 
 export interface DiskFilters {
@@ -232,6 +303,9 @@ export interface AppState {
   session: SessionState;
   authMode: AuthMode | 'unknown';
   archive: ArchiveState;
+  bookmarks: BookmarksState;
+  social: SocialState;
+  notifications: NotificationsState;
   disk: DiskState;
   selection: SelectionState;
   detail: DetailState;
@@ -267,6 +341,9 @@ export function createInitialState(): AppState {
       error: null,
       filters: { ...DEFAULT_ARCHIVE_FILTERS },
     },
+    bookmarks: { slugs: new Set(), hydrated: false },
+    social: { watch: {}, follow: {} },
+    notifications: { unread: 0, open: false, items: null, loading: false, page: 0, total: 0 },
     disk: {
       files: [],
       annotations: new Map(),
@@ -327,6 +404,23 @@ type Action =
   | { type: 'archive/loadOk'; items: MapCardDto[]; total: number; page: number; append: boolean }
   | { type: 'archive/loadErr'; message: string }
   | { type: 'archive/filters'; patch: Partial<ArchiveFilters> }
+  | { type: 'bookmark/hydrated'; slugs: Set<string> }
+  | { type: 'bookmark/set'; slug: string; on: boolean }
+  | { type: 'social/watchSet'; slug: string; watch: WatchState }
+  | { type: 'social/followSet'; authorId: string; follow: FollowState }
+  | { type: 'notif/unread'; unread: number }
+  | { type: 'notif/open'; open: boolean }
+  | { type: 'notif/loadStart' }
+  | {
+      type: 'notif/loaded';
+      items: NotificationDto[];
+      total: number;
+      unread: number;
+      page: number;
+      append: boolean;
+    }
+  | { type: 'notif/loadErr' }
+  | { type: 'notif/markRead'; ids: string[] | 'all' }
   | { type: 'scan/start' }
   | { type: 'scan/progress'; done: number; total: number }
   | {
@@ -442,6 +536,62 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         archive: { ...state.archive, filters: { ...state.archive.filters, ...action.patch } },
       };
+    case 'bookmark/hydrated':
+      return { ...state, bookmarks: { slugs: action.slugs, hydrated: true } };
+    case 'bookmark/set': {
+      const slugs = new Set(state.bookmarks.slugs);
+      if (action.on) slugs.add(action.slug);
+      else slugs.delete(action.slug);
+      return { ...state, bookmarks: { ...state.bookmarks, slugs } };
+    }
+    case 'social/watchSet':
+      return {
+        ...state,
+        social: { ...state.social, watch: { ...state.social.watch, [action.slug]: action.watch } },
+      };
+    case 'social/followSet':
+      return {
+        ...state,
+        social: {
+          ...state.social,
+          follow: { ...state.social.follow, [action.authorId]: action.follow },
+        },
+      };
+    case 'notif/unread':
+      return { ...state, notifications: { ...state.notifications, unread: action.unread } };
+    case 'notif/open':
+      return { ...state, notifications: { ...state.notifications, open: action.open } };
+    case 'notif/loadStart':
+      return { ...state, notifications: { ...state.notifications, loading: true } };
+    case 'notif/loaded': {
+      const items = action.append
+        ? [...(state.notifications.items ?? []), ...action.items]
+        : action.items;
+      return {
+        ...state,
+        notifications: {
+          ...state.notifications,
+          items,
+          total: action.total,
+          unread: action.unread,
+          page: action.page,
+          loading: false,
+        },
+      };
+    }
+    case 'notif/loadErr':
+      return { ...state, notifications: { ...state.notifications, loading: false } };
+    case 'notif/markRead': {
+      const items = state.notifications.items;
+      if (items === null) return state;
+      const markAll = action.ids === 'all';
+      const idSet = markAll ? null : new Set(action.ids);
+      const next = items.map((n) =>
+        !n.read && (markAll || idSet!.has(n.id)) ? { ...n, read: true } : n,
+      );
+      const unread = next.reduce((acc, n) => acc + (n.read ? 0 : 1), 0);
+      return { ...state, notifications: { ...state.notifications, items: next, unread } };
+    }
 
     case 'scan/start':
       return {
@@ -940,6 +1090,7 @@ function createActions(deps: Deps) {
         handle: result.data.discordHandle,
         checking: false,
       });
+      if (result.data.signedIn) void hydrateBookmarks();
     } else {
       dispatch({ type: 'session/set', signedIn: false, handle: null, checking: false });
     }
@@ -972,6 +1123,7 @@ function createActions(deps: Deps) {
       title: 'Signed in with Discord.',
       sub: `@${result.data.discordHandle} — review, tag, and contribute unlocked.`,
     });
+    void hydrateBookmarks();
     return true;
   }
 
@@ -988,6 +1140,7 @@ function createActions(deps: Deps) {
       title: 'Signed in with Discord.',
       sub: `@${result.handle} — review, tag, and contribute unlocked.`,
     });
+    void hydrateBookmarks();
     return true;
   }
 
@@ -997,6 +1150,9 @@ function createActions(deps: Deps) {
     const next = await window.chrono.settings.get();
     dispatch({ type: 'settings/loaded', settings: next });
     dispatch({ type: 'session/set', signedIn: false, handle: null, checking: false });
+    // Clear the ★ set and any bookmarks-only filter so the pane isn't stuck empty.
+    dispatch({ type: 'bookmark/hydrated', slugs: new Set() });
+    if (getState().archive.filters.bookmarked) setArchiveFilters({ bookmarked: false });
     pushToast({ kind: 'ok', title: 'Signed out.' });
   }
 
@@ -1008,10 +1164,15 @@ function createActions(deps: Deps) {
       page,
       perPage: 24,
       sort: f.sort,
+      dir: f.dir,
       type: f.type,
       theater: f.theater,
       team: f.team,
       size: f.size,
+      ...(f.health !== 'all' ? { health: f.health } : {}),
+      ...(f.quality !== 'any' ? { quality: f.quality } : {}),
+      ...(f.tags.length > 0 ? { tags: f.tags } : {}),
+      ...(f.bookmarked ? { bookmarked: 'me' as const } : {}),
       ...(f.q.trim().length > 0 ? { q: f.q.trim() } : {}),
       ...(f.minPlayers !== null ? { minPlayers: f.minPlayers } : {}),
     };
@@ -1047,10 +1208,330 @@ function createActions(deps: Deps) {
     void loadArchive(true);
   }
 
+  /**
+   * Pick a sort FIELD — seeds `dir` from the shared descriptor's `defaultDir`
+   * so the direction is always derived from ARCHIVE_SORT_FIELDS, never a
+   * per-client guess. The direction toggle then flips it independently.
+   */
+  function setArchiveSort(field: ArchiveSortFieldKey): void {
+    const dir: SortDir = archiveSortField(field)?.defaultDir ?? 'desc';
+    setArchiveFilters({ sort: field, dir });
+  }
+
+  function toggleArchiveDir(): void {
+    const dir: SortDir = getState().archive.filters.dir === 'asc' ? 'desc' : 'asc';
+    setArchiveFilters({ dir });
+  }
+
+  /** Toggle one enrichment tag in the multi-select (OR) tag facet. */
+  function toggleArchiveTag(tag: string): void {
+    const tags = getState().archive.filters.tags;
+    const next = tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag];
+    setArchiveFilters({ tags: next });
+  }
+
+  /**
+   * Toggle the "My bookmarks" filter. Signed out → a gentle sign-in nudge
+   * instead (bookmarked=me is a no-op without a viewer anyway).
+   */
+  function toggleMyBookmarks(): void {
+    const next = !getState().archive.filters.bookmarked;
+    if (next && !getState().session.signedIn) {
+      promptSignIn('see your bookmarks');
+      return;
+    }
+    setArchiveFilters({ bookmarked: next });
+  }
+
   function clearArchiveFilters(): void {
-    const { sort } = getState().archive.filters;
-    dispatch({ type: 'archive/filters', patch: { ...DEFAULT_ARCHIVE_FILTERS, sort } });
+    const { sort, dir } = getState().archive.filters;
+    dispatch({ type: 'archive/filters', patch: { ...DEFAULT_ARCHIVE_FILTERS, sort, dir } });
     void loadArchive(true);
+  }
+
+  // --- bookmarks -------------------------------------------------------------
+
+  /**
+   * Load the viewer's bookmarked slugs (fills the ★ stars). Callers gate on a
+   * known sign-in; the endpoint is auth-gated regardless, so a stray call while
+   * signed out simply 401s and no-ops (no reliance on just-dispatched state).
+   */
+  async function hydrateBookmarks(): Promise<void> {
+    const result = await api.getMyBookmarks();
+    if (result.ok) {
+      dispatch({ type: 'bookmark/hydrated', slugs: new Set(result.data.slugs) });
+    }
+  }
+
+  /** ★ toggle on an archive row — optimistic, reverts on failure. */
+  async function toggleBookmark(slug: string): Promise<void> {
+    if (!getState().session.signedIn) {
+      promptSignIn('bookmark maps');
+      return;
+    }
+    const on = !getState().bookmarks.slugs.has(slug);
+    dispatch({ type: 'bookmark/set', slug, on });
+    const result = await api.bookmark(slug, on);
+    if (!result.ok) {
+      dispatch({ type: 'bookmark/set', slug, on: !on });
+      pushToast({ kind: 'err', title: 'Bookmark didn’t save.', sub: result.error.message });
+    }
+  }
+
+  /**
+   * Gentle "sign in" affordance for signed-out writes: a toast whose action
+   * routes into the app's existing sign-in flow (Discord loopback, or Settings
+   * for the dev-handle path).
+   */
+  function promptSignIn(what: string): void {
+    pushToast({
+      kind: 'info',
+      glyph: '☆',
+      title: `Sign in to ${what}.`,
+      sub: 'Connect your Discord — browsing and installing need no account.',
+      actionLabel: 'Sign in',
+      onAction: () => void beginSignIn(),
+    });
+  }
+
+  async function beginSignIn(): Promise<void> {
+    const mode = await checkAuthMode();
+    if (mode === 'discord') {
+      await signInWithDiscord();
+    } else if (mode === 'dev') {
+      // Dev sign-in needs a handle input — point at the Settings surface.
+      openSettingsModal();
+    } else {
+      pushToast({
+        kind: 'err',
+        title: 'Couldn’t reach the server.',
+        sub: 'Try again, or sign in later from Settings.',
+      });
+    }
+  }
+
+  // --- watch (map subscriptions) --------------------------------------------------
+  // No GET-status route exists (the web resolves subscribe/follow server-side at
+  // SSR), so these learn each target's state from its first toggle and reconcile
+  // against the POST/DELETE response.
+
+  /** 🔔 Watch/unwatch a map's activity — optimistic; reconciles from the response. */
+  async function toggleWatch(slug: string): Promise<void> {
+    if (!getState().session.signedIn) {
+      promptSignIn('watch maps for updates');
+      return;
+    }
+    const current = getState().social.watch[slug];
+    const on = !(current?.subscribed ?? false);
+    // Optimistic — unwatching also clears the mute flag.
+    dispatch({
+      type: 'social/watchSet',
+      slug,
+      watch: { subscribed: on, muted: on ? (current?.muted ?? false) : false },
+    });
+    const result = await api.watch(slug, on);
+    if (result.ok) {
+      dispatch({
+        type: 'social/watchSet',
+        slug,
+        watch: { subscribed: result.data.subscribed, muted: result.data.muted },
+      });
+    } else {
+      dispatch({ type: 'social/watchSet', slug, watch: current ?? { subscribed: !on, muted: false } });
+      pushToast({
+        kind: 'err',
+        title: on ? 'Couldn’t watch that map.' : 'Couldn’t stop watching.',
+        sub: result.error.message,
+      });
+    }
+  }
+
+  /** Mute/unmute a watched map's broadcasts without unsubscribing. */
+  async function toggleMute(slug: string): Promise<void> {
+    const current = getState().social.watch[slug];
+    if (current === undefined || !current.subscribed) return;
+    const muted = !current.muted;
+    dispatch({ type: 'social/watchSet', slug, watch: { subscribed: true, muted } });
+    const result = await api.setMuted(slug, muted);
+    if (result.ok) {
+      dispatch({
+        type: 'social/watchSet',
+        slug,
+        watch: { subscribed: result.data.subscribed, muted: result.data.muted },
+      });
+    } else {
+      dispatch({ type: 'social/watchSet', slug, watch: current });
+      pushToast({ kind: 'err', title: 'Couldn’t change mute.', sub: result.error.message });
+    }
+  }
+
+  // --- follow (author) ------------------------------------------------------------
+
+  /**
+   * Follow/unfollow a map's verified author. The follow route resolves its
+   * `:handle` segment by user id OR handle, so the verified `authorId` passes
+   * straight through; ids that don't map to a real account (e.g. the site owner)
+   * 404 → a gentle info toast and no state change.
+   */
+  async function toggleFollow(authorId: string, displayName?: string): Promise<void> {
+    if (!getState().session.signedIn) {
+      promptSignIn('follow contributors');
+      return;
+    }
+    const current = getState().social.follow[authorId];
+    const on = !(current?.following ?? false);
+    const prevCount = current?.followerCount ?? null;
+    dispatch({
+      type: 'social/followSet',
+      authorId,
+      follow: {
+        following: on,
+        followerCount: prevCount === null ? null : Math.max(0, prevCount + (on ? 1 : -1)),
+      },
+    });
+    const result = await api.follow(authorId, on);
+    if (result.ok) {
+      dispatch({
+        type: 'social/followSet',
+        authorId,
+        follow: { following: result.data.following, followerCount: result.data.followerCount },
+      });
+    } else {
+      dispatch({
+        type: 'social/followSet',
+        authorId,
+        follow: current ?? { following: false, followerCount: prevCount },
+      });
+      const notAccount = result.error.status === 404;
+      pushToast({
+        kind: notAccount ? 'info' : 'err',
+        title: notAccount
+          ? `${displayName ?? 'This author'} isn’t on the archive yet.`
+          : 'Couldn’t update follow.',
+        sub: notAccount ? 'You can follow them once they’ve joined.' : result.error.message,
+      });
+    }
+  }
+
+  // --- comments -------------------------------------------------------------------
+
+  /** Patch one review inside the loaded reviews block (comments / report flag). */
+  function patchReview(reviewId: string, patch: (r: ReviewDto) => ReviewDto): void {
+    const block = getState().detail.reviews;
+    if (block === null) return;
+    dispatch({
+      type: 'reviews/loaded',
+      block: {
+        ...block,
+        reviews: block.reviews.map((r) => (r.id === reviewId ? patch(r) : r)),
+      },
+    });
+  }
+
+  /**
+   * Add a reply to a review. Returns the ApiResult so the composer can surface
+   * the server's inline errors (notably the "links aren't allowed" 400). On
+   * success the comment is appended to the review's thread in the loaded block so
+   * it survives tab switches.
+   */
+  async function addComment(reviewId: string, text: string): Promise<ApiResult<CommentDto>> {
+    const result = await api.addComment(reviewId, text);
+    if (result.ok) {
+      patchReview(reviewId, (r) => ({ ...r, comments: [...(r.comments ?? []), result.data] }));
+    }
+    return result;
+  }
+
+  /** Soft-delete a comment (optimistic; rolls back + toasts on failure). */
+  async function deleteComment(
+    reviewId: string,
+    commentId: string,
+  ): Promise<ApiResult<{ ok: true }>> {
+    const prev = getState().detail.reviews?.reviews.find((r) => r.id === reviewId)?.comments ?? null;
+    patchReview(reviewId, (r) => ({
+      ...r,
+      comments: (r.comments ?? []).filter((c) => c.id !== commentId),
+    }));
+    const result = await api.deleteComment(commentId);
+    if (!result.ok && prev !== null) {
+      patchReview(reviewId, (r) => ({ ...r, comments: prev }));
+      pushToast({ kind: 'err', title: 'Couldn’t delete that comment.', sub: result.error.message });
+    }
+    return result;
+  }
+
+  // --- reports --------------------------------------------------------------------
+
+  /**
+   * Report a review or comment. Returns the ApiResult so the modal can show
+   * inline errors; on success a reported review is flagged so its Report control
+   * disables (comments carry no per-viewer flag to set).
+   */
+  async function submitReport(input: ReportInput): Promise<ApiResult<ReportResultDto>> {
+    const result = await api.report(input);
+    if (result.ok && input.targetType === 'review') {
+      patchReview(input.targetId, (r) => ({ ...r, reportedByMe: true }));
+    }
+    return result;
+  }
+
+  // --- notifications --------------------------------------------------------------
+
+  /** The cheap bell-badge poll — signed-in only; drives the unread badge to 0 out. */
+  async function pollUnread(): Promise<void> {
+    if (!getState().session.signedIn) {
+      if (getState().notifications.unread !== 0) dispatch({ type: 'notif/unread', unread: 0 });
+      return;
+    }
+    const result = await api.getUnreadCount();
+    if (result.ok) dispatch({ type: 'notif/unread', unread: result.data.unread });
+  }
+
+  function toggleNotifications(): void {
+    const open = !getState().notifications.open;
+    dispatch({ type: 'notif/open', open });
+    if (open) void loadNotifications(1, false);
+  }
+
+  function closeNotifications(): void {
+    dispatch({ type: 'notif/open', open: false });
+  }
+
+  /** Load a page of the inbox (page 1 replaces; later pages append). */
+  async function loadNotifications(page = 1, append = false): Promise<void> {
+    if (!getState().session.signedIn || getState().notifications.loading) return;
+    dispatch({ type: 'notif/loadStart' });
+    const result = await api.getNotifications(page);
+    if (result.ok) {
+      dispatch({
+        type: 'notif/loaded',
+        items: result.data.items,
+        total: result.data.total,
+        unread: result.data.unread,
+        page: result.data.page,
+        append,
+      });
+    } else {
+      dispatch({ type: 'notif/loadErr' });
+    }
+  }
+
+  async function markAllNotificationsRead(): Promise<void> {
+    if (getState().notifications.unread === 0) return;
+    dispatch({ type: 'notif/markRead', ids: 'all' });
+    const result = await api.markNotificationsRead({ all: true });
+    if (!result.ok) void pollUnread(); // re-sync the badge if the write failed
+  }
+
+  /** Open a notification: mark it read, then deep-link to its map when anchored. */
+  async function openNotification(n: NotificationDto): Promise<void> {
+    dispatch({ type: 'notif/open', open: false });
+    if (!n.read) {
+      dispatch({ type: 'notif/markRead', ids: [n.id] });
+      const result = await api.markNotificationsRead({ ids: [n.id] });
+      if (!result.ok) void pollUnread();
+    }
+    if (n.identitySlug !== undefined && n.identitySlug !== '') openMapBySlug(n.identitySlug);
   }
 
   // --- scan --------------------------------------------------------------------------
@@ -1683,6 +2164,25 @@ function createActions(deps: Deps) {
     dispatch({ type: 'activityDrawer/set', open: false });
   }
 
+  // --- deep links -----------------------------------------------------------------------------
+
+  /**
+   * Open a map's detail by slug — reuses the standard "open map" path: selecting
+   * an archive target loads detail by slug (it falls back to the slug even when
+   * the map isn't in the currently-loaded page) and pops the dock out of
+   * collapsed.
+   */
+  function openMapBySlug(slug: string): void {
+    select('archive', slug);
+  }
+
+  /** Handle a chronosphere://map/<slug> deep link (main → renderer). */
+  function handleDeepLink(slug: string): void {
+    const clean = slug.trim();
+    if (clean.length === 0) return;
+    openMapBySlug(clean);
+  }
+
   // --- boot / onboarding ----------------------------------------------------------------------
 
   async function enterLibrary(): Promise<void> {
@@ -1708,6 +2208,14 @@ function createActions(deps: Deps) {
         await enterLibrary();
       } else {
         dispatch({ type: 'phase/set', phase: 'onboarding' });
+      }
+      // A launch-by-link (cold start) stashed its slug in the main process
+      // before the renderer could subscribe — pull it once and open it.
+      try {
+        const pending = await window.chrono.consumePendingDeepLink();
+        if (pending !== null) handleDeepLink(pending);
+      } catch {
+        /* no pending deep link */
       }
     } catch (err) {
       dispatch({ type: 'boot/error', message: err instanceof Error ? err.message : String(err) });
@@ -1818,7 +2326,33 @@ function createActions(deps: Deps) {
     loadArchive,
     loadMoreArchive,
     setArchiveFilters,
+    setArchiveSort,
+    toggleArchiveDir,
+    toggleArchiveTag,
+    toggleMyBookmarks,
     clearArchiveFilters,
+    // bookmarks
+    hydrateBookmarks,
+    toggleBookmark,
+    // watch / follow (social)
+    toggleWatch,
+    toggleMute,
+    toggleFollow,
+    // comments
+    addComment,
+    deleteComment,
+    // reports
+    submitReport,
+    // notifications
+    pollUnread,
+    toggleNotifications,
+    closeNotifications,
+    loadNotifications,
+    markAllNotificationsRead,
+    openNotification,
+    // deep links
+    handleDeepLink,
+    openMapBySlug,
     // scan / disk
     rescan,
     reVerify,
@@ -1932,10 +2466,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const offUpdates = window.chrono.updates.onStatus((status) => {
       actions.handleUpdateStatus(status);
     });
+    const offDeepLink = window.chrono.onDeepLink((slug) => {
+      actions.handleDeepLink(slug);
+    });
     return () => {
       offProgress();
       offChanged();
       offUpdates();
+      offDeepLink();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

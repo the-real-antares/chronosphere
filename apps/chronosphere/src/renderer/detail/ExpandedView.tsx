@@ -6,6 +6,7 @@ import { useActions, useAppState, type DetailTab } from '../state/store.tsx';
 import { ActionButton, AuthorChip, FacetChips, type ActionDescriptor } from './bits.tsx';
 import { metricsLine, VERDICT_TITLES, type DisplayFacts } from './context.ts';
 import { ReviewsTab } from './ReviewsTab.tsx';
+import { SocialActions } from './SocialActions.tsx';
 import { useViewerMedia } from './media.ts';
 import { VersionsTab } from './VersionsTab.tsx';
 import { Viewer } from './Viewer.tsx';
@@ -99,7 +100,7 @@ export function ExpandedView({
           </div>
           <div className="tab-body">
             {tab === 'overview' ? (
-              <OverviewTab facts={facts} detail={detail} actionsList={actionsList} />
+              <OverviewTab facts={facts} detail={detail} actionsList={actionsList} apiBase={apiBase} />
             ) : tab === 'health' ? (
               <HealthTab
                 report={report}
@@ -126,10 +127,12 @@ function OverviewTab({
   facts,
   detail,
   actionsList,
+  apiBase,
 }: {
   facts: DisplayFacts;
   detail: MapDetailDto | null;
   actionsList: ActionDescriptor[];
+  apiBase: string;
 }) {
   const state = useAppState();
   const added =
@@ -141,6 +144,14 @@ function OverviewTab({
   return (
     <div>
       <FacetChips facts={facts} signedIn={state.session.signedIn} />
+      {facts.slug !== null ? (
+        <SocialActions
+          slug={facts.slug}
+          authorId={detail?.authorId ?? null}
+          author={facts.author}
+          apiBase={apiBase}
+        />
+      ) : null}
       <div className="stat-band">
         <div>
           <div className="stat-num">{facts.rating !== null ? formatRating(facts.rating) : '—'}</div>
