@@ -6,6 +6,8 @@ import {
   ARCHIVE_SORT_FIELDS,
   HEALTH_LABELS,
   HEALTH_VERDICTS,
+  MAP_GAME_MODES,
+  MAP_GAME_MODE_LABELS,
   MAP_TYPES,
   MAP_TYPE_LABELS,
   MIN_PLAYER_BUCKETS,
@@ -352,6 +354,40 @@ export function ArchivePane() {
             </select>
             <span className="select-chevron">⌄</span>
           </label>
+          <label className="select-wrap">
+            <select
+              className="select"
+              aria-label="Game mode"
+              value={archive.filters.gameMode}
+              onChange={(e) => actions.setArchiveFilters({ gameMode: e.target.value })}
+            >
+              <option value="any">Any mode</option>
+              {MAP_GAME_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {MAP_GAME_MODE_LABELS[m]}
+                </option>
+              ))}
+            </select>
+            <span className="select-chevron">⌄</span>
+          </label>
+          <button
+            type="button"
+            aria-pressed={archive.filters.official}
+            title="Official Westwood-authored maps only"
+            onClick={() => actions.setArchiveFilters({ official: !archive.filters.official })}
+            style={bookmarkFilterStyle(archive.filters.official)}
+          >
+            Official
+          </button>
+          <button
+            type="button"
+            aria-pressed={archive.filters.mission}
+            title="Single-player missions / campaigns only"
+            onClick={() => actions.setArchiveFilters({ mission: !archive.filters.mission })}
+            style={bookmarkFilterStyle(archive.filters.mission)}
+          >
+            Missions
+          </button>
           <div className="filter-row-spacer" />
           <button
             type="button"

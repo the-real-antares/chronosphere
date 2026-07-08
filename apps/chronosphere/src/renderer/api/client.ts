@@ -206,6 +206,10 @@ export function createApiClient(config: ApiClientConfig) {
       if (query.quality) params.set('quality', query.quality);
       // Multi-tag OR — the backend accepts a comma-joined `tags` param.
       if (query.tags && query.tags.length > 0) params.set('tags', query.tags.join(','));
+      // Map-file facts (map_facts): declared game mode + official / mission flags.
+      if (query.gameMode) params.set('gameMode', query.gameMode);
+      if (query.official) params.set('official', '1');
+      if (query.mission) params.set('mission', '1');
       if (query.bookmarked) params.set('bookmarked', query.bookmarked);
       params.set('page', String(query.page ?? 1));
       params.set('perPage', String(query.perPage ?? ARCHIVE_PER_PAGE));

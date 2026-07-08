@@ -1,4 +1,4 @@
-import { HEALTH_GLYPHS, type HealthVerdict } from '@antares/shared/taxonomy.ts';
+import { featureLabel, gameModeLabel, HEALTH_GLYPHS, type HealthVerdict } from '@antares/shared/taxonomy.ts';
 import type { HealthReport, MapDetailDto } from '@antares/shared/types.ts';
 import { formatCount, formatKb, formatRating, formatRelative, starString } from '../lib/format.ts';
 import { resolveAssetUrl } from '../lib/url.ts';
@@ -178,6 +178,29 @@ function OverviewTab({
         <>
           <div className="section-label">Description</div>
           <div className="description-body">{detail.description}</div>
+        </>
+      ) : null}
+      {detail?.facts &&
+      (detail.facts.official ||
+        detail.facts.mission ||
+        detail.facts.gameModes.length > 0 ||
+        detail.facts.features.length > 0) ? (
+        <>
+          <div className="section-label">Modes &amp; features</div>
+          <div className="facts-chips">
+            {detail.facts.official ? <span className="fact-chip fact-chip-gold">Official</span> : null}
+            {detail.facts.mission ? <span className="fact-chip fact-chip-accent">Mission</span> : null}
+            {detail.facts.gameModes.map((m) => (
+              <span key={m} className="fact-chip">
+                {gameModeLabel(m)}
+              </span>
+            ))}
+            {detail.facts.features.map((fk) => (
+              <span key={fk} className="fact-chip fact-chip-dim">
+                {featureLabel(fk)}
+              </span>
+            ))}
+          </div>
         </>
       ) : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>

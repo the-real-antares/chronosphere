@@ -72,6 +72,12 @@ export interface ArchiveFilters {
   quality: QualityBand | 'any';
   /** Enrichment tags — a map matches if it carries ANY (OR). */
   tags: string[];
+  /** Declared CnCNet game mode from map_facts (e.g. 'teamgame'); 'any' clears. */
+  gameMode: string;
+  /** Only official (Westwood) maps. */
+  official: boolean;
+  /** Only single-player missions / campaigns. */
+  mission: boolean;
   /** 'My bookmarks' filter → bookmarked=me (no-op / prompt when signed out). */
   bookmarked: boolean;
   /** Sort field key from the shared ARCHIVE_SORT_FIELDS descriptor. */
@@ -90,6 +96,9 @@ export const DEFAULT_ARCHIVE_FILTERS: ArchiveFilters = {
   health: 'all',
   quality: 'any',
   tags: [],
+  gameMode: 'any',
+  official: false,
+  mission: false,
   bookmarked: false,
   sort: 'downloads',
   dir: 'desc',
@@ -282,6 +291,13 @@ export interface ToastItem {
   onAction: (() => void) | null;
 }
 
+/** Auto-update progress for the persistent update pill (App shell). */
+export interface UpdateProgress {
+  phase: 'idle' | 'downloading' | 'ready';
+  version: string;
+  percent: number;
+}
+
 export interface ActivityEntry {
   id: string;
   glyph: string;
@@ -316,6 +332,7 @@ export interface AppState {
   versionPicker: VersionPickerState;
   settingsModalOpen: boolean;
   activityDrawerOpen: boolean;
+  updateProgress: UpdateProgress;
   toasts: ToastItem[];
   activity: ActivityEntry[];
   /** Dismissed review nudges, per contentHash (persisted). */
@@ -382,6 +399,7 @@ export function createInitialState(): AppState {
     versionPicker: { open: false, slug: null, mapName: '' },
     settingsModalOpen: false,
     activityDrawerOpen: false,
+    updateProgress: { phase: 'idle', version: '', percent: 0 },
     toasts: [],
     activity: [],
     nudgesDismissed: new Set(),
@@ -474,6 +492,7 @@ type Action =
   | { type: 'nudge/dismiss'; hash: string }
   | { type: 'settingsModal/set'; open: boolean }
   | { type: 'activityDrawer/set'; open: boolean }
+  | { type: 'update/progress'; info: UpdateProgress }
   | { type: 'storage/set'; info: StorageInfo };
 
 // ---------------------------------------------------------------------------
@@ -794,6 +813,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, settingsModalOpen: action.open };
     case 'activityDrawer/set':
       return { ...state, activityDrawerOpen: action.open };
+    case 'update/progress':
+      return { ...state, updateProgress: action.info };
     case 'storage/set':
       return { ...state, storage: action.info };
 
@@ -1172,6 +1193,9 @@ function createActions(deps: Deps) {
       ...(f.health !== 'all' ? { health: f.health } : {}),
       ...(f.quality !== 'any' ? { quality: f.quality } : {}),
       ...(f.tags.length > 0 ? { tags: f.tags } : {}),
+      ...(f.gameMode !== 'any' ? { gameMode: f.gameMode } : {}),
+      ...(f.official ? { official: true } : {}),
+      ...(f.mission ? { mission: true } : {}),
       ...(f.bookmarked ? { bookmarked: 'me' as const } : {}),
       ...(f.q.trim().length > 0 ? { q: f.q.trim() } : {}),
       ...(f.minPlayers !== null ? { minPlayers: f.minPlayers } : {}),
@@ -2259,6 +2283,7 @@ function createActions(deps: Deps) {
   function handleUpdateStatus(status: UpdateStatus): void {
     switch (status.kind) {
       case 'available':
+        dispatch({ type: 'update/progress', info: { phase: 'downloading', version: status.version, percent: 0 } });
         pushToast({
           kind: 'ok',
           glyph: '↑',
@@ -2266,10 +2291,18 @@ function createActions(deps: Deps) {
           sub: 'Downloading in the background…',
         });
         break;
+      case 'downloading':
+        // Drives the persistent progress pill; no toast (would spam every tick).
+        dispatch({
+          type: 'update/progress',
+          info: { phase: 'downloading', version: status.version, percent: status.percent },
+        });
+        break;
       case 'not-available':
         pushToast({ kind: 'ok', title: `You’re on the latest version (v${status.version}).` });
         break;
       case 'downloaded':
+        dispatch({ type: 'update/progress', info: { phase: 'ready', version: status.version, percent: 100 } });
         // A real action button — clicking it quits, installs, and relaunches, so the
         // user never has to know that closing the window on macOS doesn't fully quit.
         pushToast({

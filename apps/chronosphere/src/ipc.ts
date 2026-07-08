@@ -153,6 +153,7 @@ export interface AppInfo {
  */
 export type UpdateStatus =
   | { kind: 'available'; version: string }
+  | { kind: 'downloading'; version: string; percent: number }
   | { kind: 'not-available'; version: string }
   | { kind: 'downloaded'; version: string }
   | { kind: 'error'; message: string }

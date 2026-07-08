@@ -104,6 +104,38 @@ function BootErrorScreen({ message }: { message: string }) {
   );
 }
 
+/** Persistent auto-update pill: live download % during download, "Restart now" when ready. */
+function UpdatePill() {
+  const { updateProgress: u } = useAppState();
+  if (u.phase === 'idle') return null;
+  if (u.phase === 'ready') {
+    return (
+      <div className="update-pill update-pill-ready">
+        <span className="update-pill-icon">✓</span>
+        <span>Update v{u.version} ready</span>
+        <button
+          type="button"
+          className="update-pill-btn"
+          onClick={() => void window.chrono.updates.quitAndInstall()}
+        >
+          Restart now
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="update-pill">
+      <span className="update-pill-icon">↓</span>
+      <span>
+        Updating v{u.version} · {u.percent}%
+      </span>
+      <div className="update-pill-bar">
+        <div className="update-pill-fill" style={{ width: `${u.percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function LibraryScreen() {
   const state = useAppState();
   const actions = useActions();
@@ -161,6 +193,7 @@ function LibraryScreen() {
 
       {/* Overlay surfaces */}
       <ChronoshiftLayer />
+      <UpdatePill />
       <ToastLayer />
       <ActivityDrawer />
       <SettingsModal />

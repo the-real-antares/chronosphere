@@ -16,6 +16,8 @@ const { autoUpdater } = updaterPkg;
 
 let wired = false;
 let manualCheck = false;
+/** Version from 'update-available', so 'download-progress' (which lacks it) can label. */
+let pendingVersion = '';
 
 export function registerUpdaterEvents(broadcast: (status: UpdateStatus) => void): void {
   if (wired) return;
@@ -24,7 +26,11 @@ export function registerUpdaterEvents(broadcast: (status: UpdateStatus) => void)
   autoUpdater.on('update-available', (info: { version: string }) => {
     // Surface on BOTH a manual check and the silent startup auto-download, so the
     // background download is visible and the 'downloaded' → Restart prompt follows.
+    pendingVersion = info.version;
     broadcast({ kind: 'available', version: info.version });
+  });
+  autoUpdater.on('download-progress', (p: { percent: number }) => {
+    broadcast({ kind: 'downloading', version: pendingVersion, percent: Math.round(p.percent) });
   });
   autoUpdater.on('update-not-available', (info: { version: string }) => {
     if (!manualCheck) return;
