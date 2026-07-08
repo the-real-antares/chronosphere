@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { ActivityDrawer } from './components/ActivityDrawer.tsx';
+import { useResizable } from './lib/useResizable.ts';
 import { StatusBar } from './components/StatusBar.tsx';
 import { TitleBar } from './components/TitleBar.tsx';
 import { ToastLayer } from './components/ToastLayer.tsx';
@@ -141,6 +142,8 @@ function LibraryScreen() {
   const actions = useActions();
   const narrow = useIsNarrow();
   const [narrowTab, setNarrowTab] = useState<Pane>('archive');
+  // Draggable divider between the Archive and Disk panes (wide layout only), persisted.
+  const split = useResizable('archiveWidth', 480, { axis: 'x', min: 260, max: 1000 });
 
   // Status-bar clicks focus the disk pane — follow that into the narrow tab.
   const focusedPane = state.selection.focusedPane;
@@ -183,8 +186,20 @@ function LibraryScreen() {
         </div>
       ) : null}
       <div className="app-body">
-        <div className="app-main">
+        <div
+          className="app-main"
+          style={!narrow ? ({ '--archive-width': `${split.size}px` } as CSSProperties) : undefined}
+        >
           {(!narrow || narrowTab === 'archive') && <ArchivePane />}
+          {!narrow ? (
+            <div
+              className="pane-splitter"
+              onPointerDown={split.onPointerDown}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize the map list"
+            />
+          ) : null}
           {(!narrow || narrowTab === 'disk') && <DiskPane />}
         </div>
         {/* One mount: renders the dock, or the expanded overlay over .app-body. */}

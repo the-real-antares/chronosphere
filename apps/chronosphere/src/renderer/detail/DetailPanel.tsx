@@ -14,6 +14,7 @@ import {
 } from '../lib/format.ts';
 import { archiveInstallState } from '../lib/reconcile.ts';
 import { resolveAssetUrl } from '../lib/url.ts';
+import { useResizable } from '../lib/useResizable.ts';
 import { contributeCandidates, findDiskRow, shouldNudge, useStore } from '../state/store.tsx';
 import { ActionButton, AuthorChip, FacetChips, PreviewThumb, type ActionDescriptor } from './bits.tsx';
 import { SocialActions } from './SocialActions.tsx';
@@ -349,6 +350,8 @@ export function DetailPanel() {
   // --- render --------------------------------------------------------------------
 
   const tier = state.detail.tier;
+  // Draggable dock height (compact tier only), persisted. Dragging the top edge UP grows it.
+  const dock = useResizable('dockHeight', 180, { axis: 'y', min: 120, max: 520, invert: true });
   const expanded = tier === 'expanded' && target !== null && facts !== null && !batch;
   const handleName = batch ? `${multi.length} maps selected` : (facts?.name ?? '');
   const resetKey = selTarget !== null ? `${selTarget.pane}:${selTarget.id}` : 'none';
@@ -409,7 +412,19 @@ export function DetailPanel() {
           onReVerify={target.kind === 'disk' ? () => reVerify(target.unit) : null}
         />
       ) : (
-        <div className={`detail-dock${tier === 'collapsed' ? ' collapsed' : ''}`}>
+        <div
+          className={`detail-dock${tier === 'collapsed' ? ' collapsed' : ''}`}
+          style={tier === 'compact' ? { height: dock.size } : undefined}
+        >
+          {tier === 'compact' ? (
+            <div
+              className="dock-resize"
+              onPointerDown={dock.onPointerDown}
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize the detail panel"
+            />
+          ) : null}
           <div className="detail-handle">
             <span className="detail-handle-title">Detail</span>
             {handleName !== '' ? <span className="detail-handle-name">— {handleName}</span> : null}
